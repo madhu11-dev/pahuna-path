@@ -1,0 +1,72 @@
+services:
+  app-web-server:
+    image: webdevops/php-nginx-dev:8.4
+    platform: linux/amd64
+    working_dir: /var/www/html
+    volumes:
+      - '../:/var/www/html'
+    ports:
+      - '8090:80'
+    environment:
+      COMPOSER_ROOT_VERSION: 2
+      COMPOSER_VERSION: 2
+      WEB_DOCUMENT_ROOT: /var/www/html/public
+    networks:
+      - app-network
+    depends_on:
+      - app-db-server
+      - redis
+    healthcheck:
+      test: [ 'CMD', 'curl', '-f', 'http://localhost:8080' ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  app-db-server:
+    image: postgres:17.5
+    platform: linux/amd64
+    restart: always 
+    env_file:
+      - ./.env
+    volumes:
+      - laravel-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    ports:
+      - "5532:5432"
+
+  mailhog:
+    image: mailhog/mailhog
+    platform: linux/amd64
+    restart: always
+    container_name: maildogforphp
+    logging: 
+      driver: none
+    ports:
+      - 8025:8025
+      - 1025:1025
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7-alpine
+    platform: linux/amd64
+    restart: always
+    ports:
+      - 6379:6379
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-network
+    
+networks:
+  app-network:
+    # external: true
+
+volumes:
+  laravel-data:
+  redis-data:
+
+
+
