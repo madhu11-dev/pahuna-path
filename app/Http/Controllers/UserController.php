@@ -13,7 +13,7 @@ class UserController extends Controller{
         try {
 
             [$user]= $this->authService->authRegister($request->name, $request->email,$request->password);
-
+            
 
         } catch (\Throwable $th) {
            
