@@ -17,11 +17,9 @@ class RegistrationResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'status' => false,
+            'status' => true,
             'message' => 'User registered successfully!',
             'user' => $this->resource->user,
-            'token' => $this->resource->user->createToken('API TOKEN')->plainTextToken,
-            'verifyUrl' => $this->resource->verificationUrl
 
         ];
     }
