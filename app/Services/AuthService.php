@@ -9,9 +9,9 @@ class AuthService
     public function __construct(protected RegisterUserAction $registerUserAction) {}
 
 
-    public function authRegister($name, $email, $password): array
+    public function authRegister($validator)
     {
-        $user = $this->registerUserAction->registerUser($name, $email, $password);
-        return [$user];
+        $user = $this->registerUserAction->handle($validator);
+        return $user;
     }
 }

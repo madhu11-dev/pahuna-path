@@ -7,8 +7,11 @@ use App\Models\User;
 class RegisterUserAction
 {
 
-    public function registerUser($name, $email, $password)
+    public function handle($validaor)
     {
+        $name = $validaor['name'];
+        $email = $validaor['email'];
+        $password = $validaor['password'];
         $user = User::create([
             'name' => $name,
             'email' => $email,
