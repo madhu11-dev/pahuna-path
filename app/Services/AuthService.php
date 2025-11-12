@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Actions\AuthorizationActions\RegisterUserAction;
+use Illuminate\Support\Facades\Auth;
 
 class AuthService
 {
@@ -11,7 +12,25 @@ class AuthService
 
     public function authRegister($validator)
     {
-        $user = $this->registerUserAction->handle($validator);
-        return $user;
+        return $this->registerUserAction->handle($validator);
+    }
+    public function authLogin(array $credentials)
+    {
+        if (!Auth::attempt($credentials)) {
+            return null;
+        }
+
+        $user = Auth::user();
+
+        if (!$user->hasVerifiedEmail()) {
+            return 'unverified';
+        }
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return [
+            'user' => $user,
+            'token' => $token,
+        ];
     }
 }
