@@ -3,34 +3,26 @@
 namespace App\Services;
 
 use App\Actions\AuthorizationActions\RegisterUserAction;
-use Illuminate\Support\Facades\Auth;
+use App\Actions\AuthorizationActions\SendVerificationEmailAction;
 
 class AuthService
 {
-    public function __construct(protected RegisterUserAction $registerUserAction) {}
+    public function __construct(
+        protected RegisterUserAction $registerUserAction,
+        protected SendVerificationEmailAction $sendVerificationEmailAction
+    ) {}
 
-
-    public function authRegister($validator)
+    public function register(array $validatedData)
     {
-        return $this->registerUserAction->handle($validator);
-    }
-    public function authLogin(array $credentials)
-    {
-        if (!Auth::attempt($credentials)) {
-            return null;
-        }
+        // 1. Create user
+        $user = $this->registerUserAction->handle($validatedData);
 
-        $user = Auth::user();
-
-        if (!$user->hasVerifiedEmail()) {
-            return 'unverified';
-        }
-
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // 2. Send verification email
+        $verificationUrl = $this->sendVerificationEmailAction->handle($user);
 
         return [
             'user' => $user,
-            'token' => $token,
+            'verification_url' => $verificationUrl
         ];
     }
 }

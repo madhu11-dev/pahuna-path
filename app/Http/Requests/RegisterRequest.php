@@ -23,7 +23,7 @@ class RegisterRequest extends FormRequest
         return [
             'name' => 'required',
             'email' => ['required', 'email', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:6', 'confirmed']
+            'password' => ['required', 'string', 'min:6']
         ];
     }
 
@@ -34,7 +34,7 @@ class RegisterRequest extends FormRequest
             'email.required' => 'Email is required.',
             'email.unique' => 'This email is already registered.',
             'password.required' => 'Password is required.',
-            'password.confirmed' => 'Passwords do not match.',
+
         ];
     }
 }

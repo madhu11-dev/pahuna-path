@@ -3,29 +3,30 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\RegisterRequest;
-use App\Http\Resources\ErrorMessages\ErrorResource;
 use App\Http\Resources\UserResources\RegistrationResource;
 use App\Services\AuthService;
-use Exception;
 use Throwable;
 
 class UserController extends Controller
 {
-
     public function __construct(protected AuthService $authService) {}
 
-    function register(RegisterRequest $request)
+    public function register(RegisterRequest $request)
     {
+        try {
+            $validated = $request->validated();
 
+            $result = $this->authService->register($validated);
 
-        $validaor = $request->validated();
-        $user = $this->authService->authRegister($validaor
-            
-        );
-
-        return (new RegistrationResource((object)[
-            'user'             => $user,
-            // 'verificationurl'  => $verificationUrl
-        ]))->response()->setStatusCode(200);
+            return (new RegistrationResource((object)[
+                'user' => $result['user'],
+                'verification_url' => $result['verification_url'],
+            ]))->response()->setStatusCode(201);
+        } catch (Throwable $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
     }
 }

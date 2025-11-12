@@ -1,19 +1,25 @@
-<?php 
+<?php
+
 namespace App\Actions\AuthorizationActions;
 
+use App\Mail\VerifyEmail;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Auth\Events\Registered;
 
-class SendVerificationEmailAction{
+class SendVerificationEmailAction
+{
+    public function handle($user)
+    {
+        $verificationUrl = route('verification.verify', [
+            'id' => $user->id,
+            'hash' => sha1($user->email),
+        ]);
 
-    public function sendEmail($user){
+        // Trigger Laravel Registered event (optional)
         event(new Registered($user));
 
-        $verificationUrl = route('verification.verify',[
-            'id'=> $user->id,
-            'hash'=> sha1($user->email),
-
-
-        ]);
+        // Send the email
+        Mail::to($user->email)->send(new VerifyEmail($verificationUrl));
 
         return $verificationUrl;
     }
