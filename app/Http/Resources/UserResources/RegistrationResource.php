@@ -18,9 +18,9 @@ class RegistrationResource extends JsonResource
     {
         return [
             'status' => true,
-            'message' => 'User registered successfully!',
+            'message' => 'User registered successfully! Please verify email',
             'user' => $this->resource->user,
-
+            'verification_url' => $this->resource->verification_url,
         ];
     }
 }
