@@ -25,7 +25,7 @@ class LoginRequest extends FormRequest
             'email.required' => 'Email is required.',
             'email.email'    => 'Email must be a valid email address.',
             'password.required' => 'Password is required.',
-            'password.min'      => 'Password must be at least 4 characters.',
+            'password.min'      => 'Password must be at least 6 characters.',
         ];
     }
 }
