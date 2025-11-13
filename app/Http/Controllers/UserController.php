@@ -21,8 +21,6 @@ class UserController extends Controller
             $result = $this->authService->register($validated);
 
             return (new RegistrationResource((object)[
-                'user' => $result['user'],
-                'verification_url' => $result['verification_url'],
             ]))->response()->setStatusCode(201);
         } catch (Throwable $e) {
             return response()->json([

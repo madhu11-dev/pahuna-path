@@ -49,7 +49,7 @@ class AuthService
 
         return [
             'status' => true,
-            'message' => 'Login successful',
+            'message' => 'Login successfully',
             'user' => $user,
             'token' => $token
         ];

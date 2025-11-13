@@ -18,9 +18,6 @@ class SendVerificationEmailAction
         // Trigger Laravel Registered event (optional)
         event(new Registered($user));
 
-        // Send the email
-        Mail::to($user->email)->send(new VerifyEmail($verificationUrl));
-
         return $verificationUrl;
     }
 }
