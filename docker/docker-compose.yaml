@@ -24,9 +24,9 @@ services:
     restart: unless-stopped
 
   app-db-server:
-    image: postgres:17.5
+    image: postgis/postgis:17-3.4
     platform: linux/amd64
-    restart: always 
+    restart: always
     env_file:
       - ./.env
     volumes:
