@@ -17,6 +17,7 @@ class Place extends Model
         'caption',
         'review',
         'user_id',
+        'location'
     ];
 
     protected $casts = [
@@ -55,5 +56,30 @@ class Place extends Model
     {
         $point = DB::selectOne("SELECT ST_X(location::geometry) AS lng FROM places WHERE id = ?", [$this->id]);
         return $point?->lng;
+    }
+
+    public function getLocationAttribute($value)
+    {
+        if (!$value) {
+            return null;
+        }
+
+        $point = DB::selectOne("SELECT ST_X(location::geometry) AS lng, ST_Y(location::geometry) AS lat FROM places WHERE id = ?", [$this->id]);
+        return [
+            'latitude' => $point->lat,
+            'longitude' => $point->lng,
+        ];
+    }
+
+    /**
+     * Mutator: store lat/lng as geography(POINT, 4326)
+     */
+    public function setLocationAttribute($value)
+    {
+        if (is_array($value) && isset($value['latitude'], $value['longitude'])) {
+            $this->attributes['location'] = DB::raw("ST_SetSRID(ST_MakePoint({$value['longitude']}, {$value['latitude']}), 4326)");
+        } else {
+            $this->attributes['location'] = null;
+        }
     }
 }
