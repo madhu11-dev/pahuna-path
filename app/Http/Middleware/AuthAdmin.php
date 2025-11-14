@@ -20,7 +20,7 @@ class AuthAdmin
             if (Auth::user()->utype === 'ADM') {
                 return $next($request);
             } else {
-                Session::flash('error', 'You do have admin access');
+                Session::flash('error', 'You do not have admin access');
                 return redirect()->route('login');
             }
         }
