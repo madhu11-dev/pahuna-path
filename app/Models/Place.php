@@ -17,43 +17,45 @@ class Place extends Model
         'caption',
         'review',
         'user_id',
+        'location'
     ];
 
     protected $casts = [
         'images' => 'array', // JSON array for images
     ];
 
-    /**
-     * Relationship to User
-     */
+    // Relationship to User
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
     /**
-     * Set the PostGIS location from latitude and longitude
+     * Mutator: store lat/lng as geography(POINT, 4326)
      */
-    public function setLocation(float $latitude, float $longitude)
+    public function setLocationAttribute($value)
     {
-        DB::update("UPDATE places SET location = ST_GeogFromText('POINT($longitude $latitude)') WHERE id = ?", [$this->id]);
+        if (is_array($value) && isset($value['latitude'], $value['longitude'])) {
+            $this->attributes['location'] = DB::raw(
+                "ST_SetSRID(ST_MakePoint({$value['longitude']}, {$value['latitude']}), 4326)"
+            );
+        } else {
+            $this->attributes['location'] = null;
+        }
     }
 
     /**
-     * Get latitude
+     * Accessor: return latitude/longitude array
      */
-    public function getLatitudeAttribute()
+    public function getLocationAttribute($value)
     {
-        $point = DB::selectOne("SELECT ST_Y(location::geometry) AS lat FROM places WHERE id = ?", [$this->id]);
-        return $point?->lat;
-    }
+        if (!$this->exists) return null;
 
-    /**
-     * Get longitude
-     */
-    public function getLongitudeAttribute()
-    {
-        $point = DB::selectOne("SELECT ST_X(location::geometry) AS lng FROM places WHERE id = ?", [$this->id]);
-        return $point?->lng;
+        $point = DB::selectOne(
+            "SELECT ST_X(location::geometry) AS lng, ST_Y(location::geometry) AS lat FROM places WHERE id = ?",
+            [$this->id]
+        );
+
+        return $point ? ['latitude' => $point->lat, 'longitude' => $point->lng] : null;
     }
 }
