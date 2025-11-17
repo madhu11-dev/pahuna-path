@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\EmailController;
+use App\Http\Controllers\UserController;
+use App\Http\Middleware\AuthAdmin;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\EmailController;
@@ -18,3 +21,8 @@ Route::prefix('auth')->group(function () {
     Route::put('/places/{place}', [PlaceController::class, 'update']);
     Route::delete('/places/{place}', [PlaceController::class, 'destroy']);
 // });
+
+// Admin routes only 
+Route::middleware(['auth', AuthAdmin::class])->group(function () {
+    
+});
