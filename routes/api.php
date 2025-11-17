@@ -1,8 +1,9 @@
 <?php
-use App\Http\Controllers\EmailController;
-use App\Http\Controllers\UserController;
+
 use Illuminate\Support\Facades\Route;
-require __DIR__.'/PlaceRoutes.php';
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\EmailController;
+use App\Http\Controllers\PlaceController;
 
 Route::prefix('auth')->group(function () {
     Route::post('/register', [UserController::class, 'register']);
@@ -10,3 +11,10 @@ Route::prefix('auth')->group(function () {
         ->name('verification.verify');
     Route::post('/login', [UserController::class, 'login']);
 });
+
+// Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/places', [PlaceController::class, 'index']);
+    Route::post('/places', [PlaceController::class, 'store']);
+    Route::put('/places/{place}', [PlaceController::class, 'update']);
+    Route::delete('/places/{place}', [PlaceController::class, 'destroy']);
+// });
