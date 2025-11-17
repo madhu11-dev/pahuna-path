@@ -3,9 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
-use App\Mail\VerifyEmail;
 use Illuminate\Auth\Events\Verified;
 
 class EmailService

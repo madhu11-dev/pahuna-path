@@ -54,4 +54,8 @@ class AuthService
             'token' => $token
         ];
     }
+
+    public function logout(){
+        
+    }
 }
