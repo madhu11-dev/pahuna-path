@@ -4,8 +4,6 @@ use App\Http\Controllers\EmailController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\AuthAdmin;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\EmailController;
 use App\Http\Controllers\PlaceController;
 
 Route::prefix('auth')->group(function () {
