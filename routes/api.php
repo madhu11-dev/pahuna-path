@@ -3,6 +3,10 @@
 use App\Http\Controllers\EmailController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
+<<<<<<< Updated upstream
+=======
+use App\Http\Controllers\PlaceController;
+>>>>>>> Stashed changes
 
 Route::prefix('auth')->group(function () {
 
