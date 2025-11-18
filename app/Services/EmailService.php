@@ -34,7 +34,7 @@ class EmailService
         }
 
         if ($user->hasVerifiedEmail()) {
-            return response()->json(['status' => false, 'message' => 'Email already verified'], 400);
+            return redirect(env('FRONTEND_URL') . '/login?status=Email already verified.');
         }
 
         $user->markEmailAsVerified();
@@ -44,6 +44,6 @@ class EmailService
         $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000'); // This assumes you're storing it in your .env
 
         // Redirect to the frontend's login page
-        return redirect()->to($frontendUrl . '/login')->with('status', 'Email verified successfully! Please log in.');
+        return redirect($frontendUrl . '/login?status=Email verified successfully! Please log in.');
     }
 }
