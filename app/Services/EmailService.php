@@ -3,9 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
-use App\Mail\VerifyEmail;
 use Illuminate\Auth\Events\Verified;
 
 class EmailService
@@ -22,7 +20,7 @@ class EmailService
             ['id' => $user->id, 'hash' => sha1($user->email)]
         );
 
-        Mail::to($user->email)->send(new VerifyEmail($user, $verificationUrl));
+        // Mail::to($user->email)->send(new VerifyEmail($user, $verificationUrl));
 
         return response()->json(['status' => true, 'message' => 'Verification email sent']);
     }
@@ -42,6 +40,10 @@ class EmailService
         $user->markEmailAsVerified();
         event(new Verified($user));
 
-        return response()->json(['status' => true, 'message' => 'Email verified successfully']);
+        // Set the frontend base URL, adjust this as necessary
+        $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000'); // This assumes you're storing it in your .env
+
+        // Redirect to the frontend's login page
+        return redirect()->to($frontendUrl . '/login')->with('status', 'Email verified successfully! Please log in.');
     }
 }
