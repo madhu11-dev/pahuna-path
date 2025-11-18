@@ -13,7 +13,7 @@ return new class extends Migration {
             $table->json('images');
             $table->text('caption')->nullable();
             $table->float('review', 2, 1);
-            $table->string('google_map_link')->nullable();
+            $table->text('google_map_link')->nullable();
             $table->double('latitude', 10, 6)->nullable();
             $table->double('longitude', 10, 6)->nullable();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
