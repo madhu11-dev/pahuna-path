@@ -13,12 +13,12 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [UserController::class, 'login']);
 });
 
-// Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/places', [PlaceController::class, 'index']);
-    Route::post('/places', [PlaceController::class, 'store']);
-    Route::put('/places/{place}', [PlaceController::class, 'update']);
-    Route::delete('/places/{place}', [PlaceController::class, 'destroy']);
-// });
+Route::prefix('places')->controller(PlaceController::class)->group(function () {
+    Route::get('/', 'index');
+    Route::post('/', 'store');
+    Route::put('/{place}', 'update');
+    Route::delete('/{place}', 'destroy');
+});
 
 // Admin routes only 
 Route::middleware(['auth', AuthAdmin::class])->group(function () {
