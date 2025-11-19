@@ -6,8 +6,10 @@ use App\Http\Requests\StorePlaceRequest;
 use App\Http\Resources\PlaceResource;
 use App\Models\Place;
 use App\Services\PlaceService;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class PlaceController extends Controller
 {
@@ -30,53 +32,33 @@ class PlaceController extends Controller
             $data['user_id'] = 1;
 
             $imageUrls = [];
-            if ($request->hasFile('images')) {
-                $files = $request->file('images');
-                
-                if (!is_array($files)) {
-                    $files = [$files];
+            $files = array_filter(Arr::wrap($request->file('images')));
+
+            foreach ($files as $file) {
+                if (!$file || !$file->isValid()) {
+                    Log::warning('Invalid image upload skipped', [
+                        'file' => $file ? $file->getClientOriginalName() : null,
+                    ]);
+                    continue;
                 }
-                
-                if (count($files) > 5) {
-                    return response()->json([
-                        'status' => false,
-                        'message' => 'Maximum 5 images allowed.',
-                        'errors' => ['images' => ['Maximum 5 images allowed.']]
-                    ], 422);
-                }
-                
-                foreach ($files as $file) {
-                    if ($file && $file->isValid()) {
-                        try {
-                            if (!Storage::disk('public')->exists('places')) {
-                                Storage::disk('public')->makeDirectory('places');
-                            }
-                            
-                            $path = $file->store('places', 'public');
-                            
-                            if (!$path) {
-                                Log::error('Failed to store file: ' . $file->getClientOriginalName());
-                                continue;
-                            }
-                            
-                            if (!Storage::disk('public')->exists($path)) {
-                                Log::error('File does not exist after storage: ' . $path);
-                                continue;
-                            }
-                            
-                            $baseUrl = rtrim($request->getSchemeAndHttpHost() ?? config('app.url'), '/');
-                            $url = $baseUrl . '/storage/' . ltrim($path, '/');
-                            if (strpos($url, '/public/') !== false) {
-                                $url = str_replace('/public/', '/', $url);
-                            }
-                            $imageUrls[] = $url;
-                        } catch (\Exception $e) {
-                            Log::error('Error storing file: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
-                            continue;
-                        }
-                    } else {
-                        Log::error('Invalid file: ' . ($file ? $file->getClientOriginalName() : 'null'));
+
+                try {
+                    if (!Storage::disk('public')->exists('places')) {
+                        Storage::disk('public')->makeDirectory('places');
                     }
+
+                    $path = $file->store('places', 'public');
+
+                    if (!$path) {
+                        Log::error('Failed to store file: ' . $file->getClientOriginalName());
+                        continue;
+                    }
+
+                    $imageUrls[] = $this->buildPublicStorageUrl($request, $path);
+                } catch (\Throwable $e) {
+                    Log::error('Error storing file: ' . $e->getMessage(), [
+                        'trace' => $e->getTraceAsString(),
+                    ]);
                 }
             }
             
@@ -145,15 +127,10 @@ class PlaceController extends Controller
                 $files = [$files];
             }
 
-            $baseUrl = rtrim($request->getSchemeAndHttpHost() ?? config('app.url'), '/');
             $imageUrls = [];
             foreach ($files as $file) {
                 $path = $file->store('places', 'public');
-                $url = $baseUrl . '/storage/' . ltrim($path, '/');
-                if (strpos($url, '/public/') !== false) {
-                    $url = str_replace('/public/', '/', $url);
-                }
-                $imageUrls[] = $url;
+                $imageUrls[] = $this->buildPublicStorageUrl($request, $path);
             }
             $data['images'] = $imageUrls;
         }
@@ -188,5 +165,41 @@ class PlaceController extends Controller
 
         $place->delete();
         return response()->json(['message' => 'Place deleted successfully.']);
+    }
+
+    protected function buildPublicStorageUrl($request, string $path): string
+    {
+        $rawUrl = Storage::disk('public')->url($path);
+        $rawUrl = str_replace('/public/', '/', $rawUrl);
+
+        $baseUrl = $this->resolveBaseUrl($request);
+
+        if (Str::startsWith($rawUrl, ['http://', 'https://'])) {
+            return preg_replace('#^https?://[^/]+#', $baseUrl, $rawUrl);
+        }
+
+        return $baseUrl . '/' . ltrim($rawUrl, '/');
+    }
+
+    protected function resolveBaseUrl($request): string
+    {
+        $baseUrl = rtrim(config('app.url') ?? '', '/');
+
+        if (!$baseUrl) {
+            $baseUrl = rtrim($request->getSchemeAndHttpHost() ?? '', '/');
+        }
+
+        if (!$baseUrl) {
+            $baseUrl = 'http://localhost';
+        }
+
+        $parsed = parse_url($baseUrl);
+        $port = $parsed['port'] ?? env('APP_PORT', 8090);
+
+        if (!isset($parsed['port']) && $port && !in_array((int) $port, [80, 443])) {
+            $baseUrl .= ':' . $port;
+        }
+
+        return $baseUrl;
     }
 }

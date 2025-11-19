@@ -13,56 +13,39 @@ class StorePlaceRequest extends FormRequest
 
     public function rules(): array
     {
-        $rules = [
+        $imageRules = [
+            $this->isMethod('post') ? 'required' : 'sometimes',
+            'array',
+            'min:1',
+            'max:5',
+        ];
+
+        return [
             'place_name' => 'required|string|max:255',
             'caption' => 'required|string',
             'review' => 'required|numeric|min:0|max:5',
             'google_map_link' => 'required|url',
+            'images' => $imageRules,
+            'images.*' => 'required|file|mimes:jpeg,jpg,png,gif,webp,avif,heic,heif|max:10240',
         ];
-
-        if ($this->isMethod('post')) {
-            if (!$this->hasFile('images')) {
-                $rules['images'] = 'required';
-            }
-        }
-
-        return $rules;
     }
 
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
-            if ($this->hasFile('images')) {
-                $files = $this->file('images');
-                
-                if (!is_array($files)) {
-                    $files = [$files];
-                }
+            $files = $this->file('images');
 
-                if (empty($files)) {
-                    $validator->errors()->add('images', 'At least one image file is required.');
-                    return;
-                }
+            if (empty($files)) {
+                return;
+            }
 
-                if (count($files) > 5) {
-                    $validator->errors()->add('images', 'Maximum 5 images allowed.');
-                    return;
-                }
+            if (!is_array($files)) {
+                $files = [$files];
+            }
 
-                foreach ($files as $index => $file) {
-                    if (!$file->isValid()) {
-                        $validator->errors()->add("images.$index", 'Invalid file.');
-                        continue;
-                    }
-
-                    $mimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-                    if (!in_array($file->getMimeType(), $mimeTypes)) {
-                        $validator->errors()->add("images.$index", 'File must be an image (jpeg, jpg, png, gif, or webp).');
-                    }
-
-                    if ($file->getSize() > 10240 * 1024) {
-                        $validator->errors()->add("images.$index", 'Each image must not exceed 10MB.');
-                    }
+            foreach ($files as $index => $file) {
+                if (!$file || !$file->isValid()) {
+                    $validator->errors()->add("images.$index", 'Invalid file.');
                 }
             }
         });
@@ -72,8 +55,10 @@ class StorePlaceRequest extends FormRequest
     {
         return [
             'images.required' => 'At least one image file is required.',
-            'images.*.image' => 'Each file must be a valid image.',
-            'images.*.mimes' => 'Images must be in jpeg, jpg, png, gif, or webp format.',
+            'images.array' => 'Images must be submitted as an array.',
+            'images.min' => 'Please upload at least one image.',
+            'images.max' => 'Maximum 5 images allowed.',
+            'images.*.mimes' => 'Images must be jpeg, jpg, png, gif, webp, avif, heic, or heif files.',
             'images.*.max' => 'Each image must not exceed 10MB.',
             'google_map_link.url' => 'Google Map link must be a valid URL.',
         ];
