@@ -29,7 +29,12 @@ Future versions will include booking features, real-time route optimization, rat
 -   **Frontend:** Blade Templates?daisy ui / React (for UI components)
 -   **Containerization:** Docker
 -   **Version Control:** Git & GitHub
-
+---
+#setup
+run the docker
+composer install
+php artisan migrate
+php artisan storage:link 
 ---
 
 ## Purpose and Impact
