@@ -2,7 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreAccommodationRequest;
+use App\Http\Resources\AccommodationResource;
+use App\Models\Accommodation;
 use App\Services\AccommodationService;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class AccommodationController extends Controller
 {
@@ -16,6 +23,77 @@ class AccommodationController extends Controller
     public function index()
     {
         return AccommodationResource::collection(Accommodation::latest()->get());
+    }
+
+    public function store(StoreAccommodationRequest $request)
+    {
+        try {
+            $data = $request->only(['name', 'type', 'description', 'review', 'google_map_link', 'place_id']);
+            $data['user_id'] = 1;
+
+            $imageUrls = [];
+            $files = array_filter(Arr::wrap($request->file('images')));
+
+            foreach ($files as $file) {
+                if (!$file || !$file->isValid()) {
+                    Log::warning('Invalid image upload skipped', [
+                        'file' => $file ? $file->getClientOriginalName() : null,
+                    ]);
+                    continue;
+                }
+
+                try {
+                    if (!Storage::disk('public')->exists('accommodations')) {
+                        Storage::disk('public')->makeDirectory('accommodations');
+                    }
+
+                    $path = $file->store('accommodations', 'public');
+
+                    if (!$path) {
+                        Log::error('Failed to store file: ' . $file->getClientOriginalName());
+                        continue;
+                    }
+
+                    $imageUrls[] = $this->buildPublicStorageUrl($request, $path);
+                } catch (\Throwable $e) {
+                    Log::error('Error storing file: ' . $e->getMessage(), [
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                }
+            }
+            
+            if (empty($imageUrls)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No images were uploaded or files failed to save.',
+                    'errors' => ['images' => ['At least one image file is required.']]
+                ], 422);
+            }
+            
+            $data['images'] = $imageUrls;
+
+            $coords = $this->accommodationService->extractLocation($data['google_map_link'] ?? '');
+            if ($coords) {
+                $data['latitude'] = $coords['latitude'];
+                $data['longitude'] = $coords['longitude'];
+            }
+
+            $accommodation = Accommodation::create($data);
+            return new AccommodationResource($accommodation);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Accommodation creation error: ' . $e->getMessage());
+            
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function destroy(Accommodation $accommodation)
@@ -75,3 +153,4 @@ class AccommodationController extends Controller
         return $baseUrl;
     }
 }
+
