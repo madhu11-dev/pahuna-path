@@ -11,4 +11,24 @@ class StoreAccommodationRequest extends FormRequest
     {
         return true;
     }
+
+    public function rules(): array
+    {
+        $imageRules = [
+            $this->isMethod('post') ? 'required' : 'sometimes',
+            'array',
+            'min:1',
+            'max:5',
+        ];
+        return [
+            'name' => 'required|string|max:255',
+            'type' => 'required|string|in:restaurant,hotels',
+            'description' => 'required|string',
+            'review' => 'required|numeric|min:0|max:5',
+            'google_map_link' => 'required|url',
+            'place_id' => 'required|exists:places,id',
+            'images' => $imageRules,
+            'images.*' => 'required|file|mimes:jpeg,jpg,png,gif,webp,avif,heic,heif|max:10240',
+        ];
+    }
 }
