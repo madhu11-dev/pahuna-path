@@ -5,6 +5,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Middleware\AuthAdmin;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PlaceController;
+use App\Http\Controllers\AccommodationController;
 
 Route::prefix('auth')->group(function () {
     Route::post('/register', [UserController::class, 'register']);
@@ -22,6 +23,8 @@ Route::prefix('places')->controller(PlaceController::class)->group(function () {
 
 Route::prefix('accommodations')->controller(AccommodationController::class)->group(function () {
     Route::get('/', 'index');
+    Route::post('/', 'store');
+    Route::delete('/{accommodation}', 'destroy');
 });
 
 // Admin routes only 
