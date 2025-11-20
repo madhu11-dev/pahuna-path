@@ -20,6 +20,10 @@ Route::prefix('places')->controller(PlaceController::class)->group(function () {
     Route::delete('/{place}', 'destroy');
 });
 
+Route::prefix('accommodations')->controller(AccommodationController::class)->group(function () {
+    Route::get('/', 'index');
+});
+
 // Admin routes only 
 Route::middleware(['auth', AuthAdmin::class])->group(function () {
     
