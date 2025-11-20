@@ -31,4 +31,25 @@ class StoreAccommodationRequest extends FormRequest
             'images.*' => 'required|file|mimes:jpeg,jpg,png,gif,webp,avif,heic,heif|max:10240',
         ];
     }
+
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            $files = $this->file('images');
+
+            if (empty($files)) {
+                return;
+            }
+
+            if (!is_array($files)) {
+                $files = [$files];
+            }
+
+            foreach ($files as $index => $file) {
+                if (!$file || !$file->isValid()) {
+                    $validator->errors()->add("images.$index", 'Invalid file.');
+                }
+            }
+        });
+    }
 }
