@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ForgotPasswordRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\ResetPasswordRequest;
 use App\Http\Resources\UserResources\LoginResource;
 use App\Http\Resources\UserResources\RegistrationResource;
 use App\Services\AuthService;
@@ -47,4 +49,6 @@ class UserController extends Controller
             ], 400);
         }
     }
+
+   
 }
