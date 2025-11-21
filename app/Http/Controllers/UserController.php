@@ -67,6 +67,16 @@ class UserController extends Controller
 
     public function resetPassword(ResetPasswordRequest $request)
     {
-       
+        try {
+            $validated = $request->validated();
+            $response = $this->authService->resetPassword($validated);
+
+            return response()->json($response, $response['status'] ? 200 : 422);
+        } catch (Throwable $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        }
     }
 }
