@@ -5,6 +5,13 @@ namespace App\Services;
 use App\Actions\AuthorizationActions\LoginUserAction;
 use App\Actions\AuthorizationActions\RegisterUserAction;
 use App\Actions\AuthorizationActions\SendVerificationEmailAction;
+use App\Mail\ResetPasswordMail;
+use App\Models\User;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 
 class AuthService
 {
@@ -52,6 +59,63 @@ class AuthService
             'message' => 'Login successfully',
             'user' => $user,
             'token' => $token
+        ];
+    }
+
+    public function sendResetPasswordLink(array $validatedData): array
+    {
+        $user = User::where('email', $validatedData['email'])->first();
+
+        if (!$user) {
+            return [
+                'status' => true,
+                'message' => 'If the email exists, a reset link has been sent.',
+            ];
+        }
+
+        $token = Password::createToken($user);
+        $frontendUrl = rtrim(config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:3000')), '/');
+        $resetUrl = $frontendUrl . '/reset-password?token=' . urlencode($token) . '&email=' . urlencode($user->email);
+
+        Mail::to($user->email)->send(new ResetPasswordMail($resetUrl));
+
+        return [
+            'status' => true,
+            'message' => 'Password reset link sent successfully.',
+        ];
+    }
+
+    public function resetPassword(array $validatedData): array
+    {
+        $status = Password::reset(
+            [
+                'email' => $validatedData['email'],
+                'token' => $validatedData['token'],
+                'password' => $validatedData['password'],
+                'password_confirmation' => $validatedData['password_confirmation'],
+            ],
+            function ($user, $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                $user->tokens()->delete();
+
+                event(new PasswordReset($user));
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return [
+                'status' => true,
+                'message' => 'Password updated successfully.',
+            ];
+        }
+
+        return [
+            'status' => false,
+            'message' => __($status),
         ];
     }
 
