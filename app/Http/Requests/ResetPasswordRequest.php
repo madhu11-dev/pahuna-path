@@ -8,4 +8,14 @@ class ResetPasswordRequest extends FormRequest {
     {
         return true;
     }
+
+    public function rules(): array
+    {
+        return [
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email', 'exists:users,email'],
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
+            'password_confirmation' => ['required', 'string', 'min:6'],
+        ];
+    }
 }
