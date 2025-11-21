@@ -50,5 +50,12 @@ class UserController extends Controller
         }
     }
 
-   
+    public function forgotPassword(ForgotPasswordRequest $request)
+    {
+       
+    }
+
+    public function resetPassword(ResetPasswordRequest $request)
+    {
+    }
 }
