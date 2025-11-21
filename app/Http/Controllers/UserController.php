@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ForgotPasswordRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\ResetPasswordRequest;
 use App\Http\Resources\UserResources\LoginResource;
 use App\Http\Resources\UserResources\RegistrationResource;
 use App\Services\AuthService;
@@ -44,6 +46,36 @@ class UserController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    public function forgotPassword(ForgotPasswordRequest $request)
+    {
+        try {
+            $validated = $request->validated();
+            $response = $this->authService->sendResetPasswordLink($validated);
+
+            return response()->json($response, $response['status'] ? 200 : 400);
+        } catch (Throwable $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    public function resetPassword(ResetPasswordRequest $request)
+    {
+        try {
+            $validated = $request->validated();
+            $response = $this->authService->resetPassword($validated);
+
+            return response()->json($response, $response['status'] ? 200 : 422);
+        } catch (Throwable $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
             ], 400);
         }
     }
