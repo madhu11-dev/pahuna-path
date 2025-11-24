@@ -17,7 +17,7 @@ services:
       - app-db-server
       - redis
     healthcheck:
-      test: [ 'CMD', 'curl', '-f', 'http://localhost:8080' ]
+      test: [ 'CMD', 'curl', '-f', 'http://localhost:8090' ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -29,6 +29,8 @@ services:
     restart: always
     env_file:
       - ./.env
+    environment:
+      - POSTGRES_PASSWORD=postgres
     volumes:
       - laravel-data:/var/lib/postgresql/data
     networks:
@@ -40,7 +42,7 @@ services:
     image: mailhog/mailhog
     platform: linux/amd64
     restart: always
-    container_name: maildogforphp
+    container_name: mailhogforphp
     logging: 
       driver: none
     ports:
