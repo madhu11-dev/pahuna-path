@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('profile_picture')->nullable()->comment('Path to user profile picture');
             $table->string('utype')->default('USR')->comment('USR for user, ADM for admin');
             $table->rememberToken();
             $table->timestamps();

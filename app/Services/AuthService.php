@@ -119,7 +119,13 @@ class AuthService
         ];
     }
 
-    public function logout(){
+    public function logout($user): bool
+    {
+        if ($user && $user->currentAccessToken()) {
+            $user->currentAccessToken()->delete();
+            return true;
+        }
         
+        return false;
     }
 }

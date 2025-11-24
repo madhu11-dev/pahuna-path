@@ -14,19 +14,20 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [UserController::class, 'login']);
     Route::post('/forgot-password', [UserController::class, 'forgotPassword']);
     Route::post('/reset-password', [UserController::class, 'resetPassword']);
+    Route::post('/logout', [UserController::class, 'logout'])->middleware('auth:sanctum');
 });
 
 Route::prefix('places')->controller(PlaceController::class)->group(function () {
     Route::get('/', 'index');
-    Route::post('/', 'store');
-    Route::put('/{place}', 'update');
-    Route::delete('/{place}', 'destroy');
+    Route::post('/', 'store')->middleware('auth:sanctum');
+    Route::put('/{place}', 'update')->middleware('auth:sanctum');
+    Route::delete('/{place}', 'destroy')->middleware('auth:sanctum');
 });
 
 Route::prefix('accommodations')->controller(AccommodationController::class)->group(function () {
     Route::get('/', 'index');
-    Route::post('/', 'store');
-    Route::delete('/{accommodation}', 'destroy');
+    Route::post('/', 'store')->middleware('auth:sanctum');
+    Route::delete('/{accommodation}', 'destroy')->middleware('auth:sanctum');
 });
 
 // Admin routes only 

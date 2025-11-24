@@ -9,6 +9,7 @@ use App\Http\Requests\ResetPasswordRequest;
 use App\Http\Resources\UserResources\LoginResource;
 use App\Http\Resources\UserResources\RegistrationResource;
 use App\Services\AuthService;
+use Illuminate\Http\Request;
 use Throwable;
 
 class UserController extends Controller
@@ -76,6 +77,23 @@ class UserController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    public function logout(Request $request)
+    {
+        try {
+            $loggedOut = $this->authService->logout($request->user());
+            
+            return response()->json([
+                'status' => $loggedOut,
+                'message' => $loggedOut ? 'Logged out successfully' : 'Logout failed'
+            ], $loggedOut ? 200 : 400);
+        } catch (Throwable $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
             ], 400);
         }
     }

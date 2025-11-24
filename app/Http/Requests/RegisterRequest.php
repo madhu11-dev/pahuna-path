@@ -23,7 +23,8 @@ class RegisterRequest extends FormRequest
         return [
             'name' => 'required',
             'email' => ['required', 'email', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:6']
+            'password' => ['required', 'string', 'min:6'],
+            'profile_picture' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048']
         ];
     }
 
@@ -34,7 +35,9 @@ class RegisterRequest extends FormRequest
             'email.required' => 'Email is required.',
             'email.unique' => 'This email is already registered.',
             'password.required' => 'Password is required.',
-
+            'profile_picture.image' => 'Profile picture must be an image file.',
+            'profile_picture.mimes' => 'Profile picture must be a JPEG, PNG, JPG, or GIF file.',
+            'profile_picture.max' => 'Profile picture must be less than 2MB.',
         ];
     }
 }
