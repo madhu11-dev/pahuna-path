@@ -24,6 +24,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'name',
         'email',
         'password',
+        'profile_picture',
         'utype',
     ];
 
@@ -49,4 +50,21 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Get the profile picture URL with fallback to default
+     */
+    public function getProfilePictureUrlAttribute(): string
+    {
+        if ($this->profile_picture && file_exists(public_path($this->profile_picture))) {
+            return asset($this->profile_picture);
+        }
+
+        return asset('images/default-profile.png');
+    }
+
+    /**
+     * Append profile_picture_url to the model's array form
+     */
+    protected $appends = ['profile_picture_url'];
 }
