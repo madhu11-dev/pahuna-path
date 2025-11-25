@@ -2,6 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StorePlaceReviewRequest;
+use App\Http\Resources\PlaceReviewResource;
+use App\Models\Place;
+use App\Models\PlaceReview;
+use Illuminate\Http\Request;
+
 class PlaceReviewController extends Controller
 {
     public function index(Place $place)
@@ -41,6 +47,7 @@ class PlaceReviewController extends Controller
             ], 500);
         }
     }
+
     public function store(StorePlaceReviewRequest $request, Place $place)
     {
         try {
@@ -108,4 +115,21 @@ class PlaceReviewController extends Controller
         return new PlaceReviewResource($review);
     }
 
+    public function destroy(Place $place, PlaceReview $review)
+    {
+        // Ensure user can only delete their own review
+        if ($review->user_id !== auth()->id()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'You can only delete your own reviews.'
+            ], 403);
+        }
+
+        $review->delete();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Review deleted successfully.'
+        ]);
+    }
 }
