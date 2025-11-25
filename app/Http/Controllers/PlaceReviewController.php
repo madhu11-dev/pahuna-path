@@ -91,4 +91,21 @@ class PlaceReviewController extends Controller
             ], 500);
         }
     }
+
+    public function update(StorePlaceReviewRequest $request, Place $place, PlaceReview $review)
+    {
+        // Ensure user can only update their own review
+        if ($review->user_id !== auth()->id()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'You can only update your own reviews.'
+            ], 403);
+        }
+
+        $review->update($request->validated());
+        $review->load('user');
+
+        return new PlaceReviewResource($review);
+    }
+
 }
