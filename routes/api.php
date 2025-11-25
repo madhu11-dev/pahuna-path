@@ -5,6 +5,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Middleware\AuthAdmin;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PlaceController;
+use App\Http\Controllers\PlaceReviewController;
 use App\Http\Controllers\AccommodationController;
 
 Route::prefix('auth')->group(function () {
@@ -20,8 +21,16 @@ Route::prefix('auth')->group(function () {
 Route::prefix('places')->controller(PlaceController::class)->group(function () {
     Route::get('/', 'index');
     Route::post('/', 'store')->middleware('auth:sanctum');
+    Route::get('/{place}', 'show');
     Route::put('/{place}', 'update')->middleware('auth:sanctum');
     Route::delete('/{place}', 'destroy')->middleware('auth:sanctum');
+});
+
+Route::prefix('places/{place}/reviews')->controller(PlaceReviewController::class)->group(function () {
+    Route::get('/', 'index');
+    Route::post('/', 'store')->middleware('auth:sanctum');
+    Route::put('/{review}', 'update')->middleware('auth:sanctum');
+    Route::delete('/{review}', 'destroy')->middleware('auth:sanctum');
 });
 
 Route::prefix('accommodations')->controller(AccommodationController::class)->group(function () {
