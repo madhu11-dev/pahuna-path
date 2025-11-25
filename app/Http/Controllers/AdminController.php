@@ -2,11 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\AdminAuthService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Throwable;
 
 class AdminController extends Controller
 {
     public function __construct(protected AdminAuthService $adminAuthService) {}
-        // Admin Logout
+
+
+
+    // Admin Logout
     public function logout(Request $request)
     {
         try {
@@ -32,7 +39,7 @@ class AdminController extends Controller
         }
     }
 
-        // Get Dashboard Statistics
+    // Get Dashboard Statistics
     public function getDashboardStats(Request $request)
     {
         try {
@@ -58,7 +65,7 @@ class AdminController extends Controller
         }
     }
 
-        // Get All Users
+    // Get All Users
     public function getAllUsers(Request $request)
     {
         try {
@@ -84,7 +91,7 @@ class AdminController extends Controller
         }
     }
 
-        // Get All Places
+    // Get All Places
     public function getAllPlaces(Request $request)
     {
         try {
@@ -110,7 +117,7 @@ class AdminController extends Controller
         }
     }
 
-        // Get All Hotels/Accommodations
+    // Get All Hotels/Accommodations
     public function getAllHotels(Request $request)
     {
         try {
@@ -136,4 +143,34 @@ class AdminController extends Controller
         }
     }
 
+    // Get current admin info
+    public function getAdminInfo(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            // Check if user is admin
+            if (!$user || $user->utype !== 'ADM') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthorized'
+                ], 403);
+            }
+            
+            return response()->json([
+                'status' => true,
+                'admin' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'profile_picture_url' => $user->profile_picture_url
+                ]
+            ], 200);
+        } catch (Throwable $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
 }
