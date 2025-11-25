@@ -58,4 +58,30 @@ class AdminController extends Controller
         }
     }
 
+        // Get All Users
+    public function getAllUsers(Request $request)
+    {
+        try {
+            // Check if user is admin
+            if (!$request->user() || $request->user()->utype !== 'ADM') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthorized'
+                ], 403);
+            }
+
+            $users = $this->adminAuthService->getAllUsers();
+            
+            return response()->json([
+                'status' => true,
+                'users' => $users
+            ], 200);
+        } catch (Throwable $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
 }
