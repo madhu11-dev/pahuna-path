@@ -118,9 +118,22 @@ class PlaceController extends Controller
 
 
     public function show(Place $place)
-    {
-        return new PlaceResource($place);
-    }
+        {
+            try {
+                $place->load('user');
+                $result = $this->placeService->getPlaceWithReviewStats($place);
+                
+                return response()->json([
+                    'status' => true,
+                    'data' => $result
+                ]);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unable to fetch place details: ' . $e->getMessage(),
+                ], 500);
+            }
+        }
 
     public function update(StorePlaceRequest $request, Place $place)
     {
