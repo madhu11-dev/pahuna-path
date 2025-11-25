@@ -16,9 +16,11 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             
             $table->float('rating', 2, 1);
+            $table->text('comment')->nullable(); 
             
             $table->timestamps();
             
+            $table->unique(['place_id', 'user_id'], 'unique_user_place_review');
             $table->index(['place_id', 'created_at'], 'idx_place_reviews_place_date');
             $table->index(['user_id', 'created_at'], 'idx_place_reviews_user_date');
             $table->index('rating', 'idx_place_reviews_rating');
