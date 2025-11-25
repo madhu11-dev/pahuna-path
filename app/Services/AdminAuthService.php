@@ -2,6 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\User;
+use App\Models\Place;
+use App\Models\PlaceReview;
+use App\Models\Accommodation;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
+
 class AdminAuthService
 {
     public function adminLogout($user): bool
@@ -14,7 +21,7 @@ class AdminAuthService
         return false;
     }
 
-        public function getDashboardStats(): array
+    public function getDashboardStats(): array
     {
         $totalUsers = User::count();
         $totalPlaces = Place::count();
@@ -55,7 +62,7 @@ class AdminAuthService
         ];
     }
 
-        public function getAllUsers(): array
+    public function getAllUsers(): array
     {
         $users = User::select('id', 'name', 'email', 'created_at', 'profile_picture', 'utype')
             ->where('utype', 'USR') // Only get regular users, not admins
@@ -74,7 +81,7 @@ class AdminAuthService
         return $users->toArray();
     }
 
-        public function getAllPlaces(): array
+    public function getAllPlaces(): array
     {
         $places = Place::with(['reviews' => function ($query) {
             $query->select('place_id', 'rating');
@@ -98,5 +105,23 @@ class AdminAuthService
         });
 
         return $places->toArray();
+    }
+
+    public function getAllAccommodations(): array
+    {
+        $accommodations = Accommodation::select('id', 'name', 'description', 'image_path', 'created_at')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($accommodation) {
+                return [
+                    'id' => $accommodation->id,
+                    'name' => $accommodation->name,
+                    'description' => $accommodation->description,
+                    'image_url' => $accommodation->image_path ? asset($accommodation->image_path) : null,
+                    'created_at' => $accommodation->created_at->format('Y-m-d H:i:s')
+                ];
+            });
+
+        return $accommodations->toArray();
     }
 }
