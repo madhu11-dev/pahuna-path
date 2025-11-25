@@ -21,9 +21,29 @@ class PlaceController extends Controller
     }
 
     public function index()
-    {
-        return PlaceResource::collection(Place::latest()->get());
-    }
+        {
+            try {
+                // Get places with user relationship
+                $places = Place::with('user')->orderBy('created_at', 'desc')->get();
+                
+                // Transform using PlaceService
+                $result = [];
+                foreach ($places as $place) {
+                    $result[] = $this->placeService->getPlaceWithReviewStats($place);
+                }
+                
+                return response()->json([
+                    'status' => true,
+                    'data' => $result
+                ]);
+                
+            } catch (\Exception $e) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unable to fetch places: ' . $e->getMessage(),
+                ], 500);
+            }
+        }
 
     public function store(StorePlaceRequest $request)
     {
