@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\Place;
+use App\Models\PlaceReview;
+
 class PlaceService
 {
     public function extractLocation(string $googleMapLink): ?array
@@ -15,5 +18,60 @@ class PlaceService
         }
 
         return null;
+    }
+
+    /**
+     * Get place data with review statistics
+     */
+    public function getPlaceWithReviewStats($place)
+    {
+        try {
+            // Calculate review statistics
+            $reviewStats = PlaceReview::where('place_id', $place->id)
+                ->selectRaw('
+                    AVG(rating) as average_rating,
+                    COUNT(*) as review_count
+                ')
+                ->first();
+                
+            return [
+                'id' => $place->id,
+                'place_name' => $place->place_name,
+                'description' => $place->description,
+                'images' => $place->images,
+                'google_map_link' => $place->google_map_link,
+                'latitude' => $place->latitude,
+                'longitude' => $place->longitude,
+                'user' => $place->user ? [
+                    'id' => $place->user->id,
+                    'name' => $place->user->name,
+                    'profile_picture_url' => $place->user->profile_picture_url ?? 'http://localhost:8090/images/default-profile.png',
+                ] : null,
+                'average_rating' => $reviewStats ? round((float)$reviewStats->average_rating, 1) : 0,
+                'review_count' => $reviewStats ? (int)$reviewStats->review_count : 0,
+                'created_at' => $place->created_at,
+                'updated_at' => $place->updated_at,
+            ];
+        } catch (\Exception $e) {
+            // Fallback if review table doesn't exist or has issues
+            return [
+                'id' => $place->id,
+                'place_name' => $place->place_name,
+                'description' => $place->description,
+                'images' => $place->images,
+                'google_map_link' => $place->google_map_link,
+                'latitude' => $place->latitude,
+                'longitude' => $place->longitude,
+                'user' => $place->user ? [
+                    'id' => $place->user->id,
+                    'name' => $place->user->name,
+                    'profile_picture_url' => $place->user->profile_picture_url ?? 'http://localhost:8090/images/default-profile.png',
+                ] : null,
+                'average_rating' => 0,
+                'review_count' => 0,
+                'created_at' => $place->created_at,
+                'updated_at' => $place->updated_at,
+            ];
+        }
     }
 }
