@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\EmailController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\AdminController;
 use App\Http\Middleware\AuthAdmin;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PlaceController;
@@ -39,7 +40,13 @@ Route::prefix('accommodations')->controller(AccommodationController::class)->gro
     Route::delete('/{accommodation}', 'destroy')->middleware('auth:sanctum');
 });
 
-// Admin routes only 
-Route::middleware(['auth', AuthAdmin::class])->group(function () {
-    
+// Protected admin routes - using regular auth:sanctum middleware
+// Admin authorization is checked within each controller method
+Route::prefix('admin')->controller(AdminController::class)->middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', 'logout');
+    Route::get('/me', 'getAdminInfo');
+    Route::get('/dashboard/stats', 'getDashboardStats');
+    Route::get('/users', 'getAllUsers');
+    Route::get('/places', 'getAllPlaces');
+    Route::get('/hotels', 'getAllHotels');
 });
