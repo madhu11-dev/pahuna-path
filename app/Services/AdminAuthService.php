@@ -73,4 +73,30 @@ class AdminAuthService
 
         return $users->toArray();
     }
+
+        public function getAllPlaces(): array
+    {
+        $places = Place::with(['reviews' => function ($query) {
+            $query->select('place_id', 'rating');
+        }])
+        ->select('id', 'name', 'description', 'image_path', 'created_at')
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function ($place) {
+            $averageRating = $place->reviews->avg('rating') ?? 0;
+            $reviewCount = $place->reviews->count();
+            
+            return [
+                'id' => $place->id,
+                'name' => $place->name,
+                'description' => $place->description,
+                'image_url' => $place->image_path ? asset($place->image_path) : null,
+                'review_count' => $reviewCount,
+                'average_rating' => round($averageRating, 1),
+                'created_at' => $place->created_at->format('Y-m-d H:i:s')
+            ];
+        });
+
+        return $places->toArray();
+    }
 }
