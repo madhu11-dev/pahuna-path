@@ -31,4 +31,31 @@ class AdminController extends Controller
             ], 400);
         }
     }
+
+        // Get Dashboard Statistics
+    public function getDashboardStats(Request $request)
+    {
+        try {
+            // Check if user is admin
+            if (!$request->user() || $request->user()->utype !== 'ADM') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthorized'
+                ], 403);
+            }
+
+            $stats = $this->adminAuthService->getDashboardStats();
+            
+            return response()->json([
+                'status' => true,
+                'data' => $stats
+            ], 200);
+        } catch (Throwable $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
 }
