@@ -21,35 +21,35 @@ class PlaceController extends Controller
     }
 
     public function index()
-        {
-            try {
-                // Get places with user relationship
-                $places = Place::with('user')->orderBy('created_at', 'desc')->get();
-                
-                // Transform using PlaceService
-                $result = [];
-                foreach ($places as $place) {
-                    $result[] = $this->placeService->getPlaceWithReviewStats($place);
-                }
-                
-                return response()->json([
-                    'status' => true,
-                    'data' => $result
-                ]);
-                
-            } catch (\Exception $e) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unable to fetch places: ' . $e->getMessage(),
-                ], 500);
+    {
+        try {
+            // Get places with user relationship
+            $places = Place::with('user')->orderBy('created_at', 'desc')->get();
+            
+            // Transform using PlaceService
+            $result = [];
+            foreach ($places as $place) {
+                $result[] = $this->placeService->getPlaceWithReviewStats($place);
             }
+            
+            return response()->json([
+                'status' => true,
+                'data' => $result
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unable to fetch places: ' . $e->getMessage(),
+            ], 500);
         }
+    }
 
     public function store(StorePlaceRequest $request)
     {
         try {
-            $data = $request->only(['place_name', 'caption', 'review', 'google_map_link']);
-            $data['user_id'] = 1;
+            $data = $request->only(['place_name', 'description', 'google_map_link']);
+            $data['user_id'] = auth()->id() ?? 1; // Get authenticated user or fallback to 1
 
             $imageUrls = [];
             $files = array_filter(Arr::wrap($request->file('images')));
@@ -118,22 +118,22 @@ class PlaceController extends Controller
 
 
     public function show(Place $place)
-        {
-            try {
-                $place->load('user');
-                $result = $this->placeService->getPlaceWithReviewStats($place);
-                
-                return response()->json([
-                    'status' => true,
-                    'data' => $result
-                ]);
-            } catch (\Exception $e) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unable to fetch place details: ' . $e->getMessage(),
-                ], 500);
-            }
+    {
+        try {
+            $place->load('user');
+            $result = $this->placeService->getPlaceWithReviewStats($place);
+            
+            return response()->json([
+                'status' => true,
+                'data' => $result
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unable to fetch place details: ' . $e->getMessage(),
+            ], 500);
         }
+    }
 
     public function update(StorePlaceRequest $request, Place $place)
     {
