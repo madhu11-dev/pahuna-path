@@ -110,4 +110,30 @@ class AdminController extends Controller
         }
     }
 
+        // Get All Hotels/Accommodations
+    public function getAllHotels(Request $request)
+    {
+        try {
+            // Check if user is admin
+            if (!$request->user() || $request->user()->utype !== 'ADM') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthorized'
+                ], 403);
+            }
+
+            $hotels = $this->adminAuthService->getAllAccommodations();
+            
+            return response()->json([
+                'status' => true,
+                'hotels' => $hotels
+            ], 200);
+        } catch (Throwable $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
 }
