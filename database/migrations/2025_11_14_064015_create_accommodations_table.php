@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('name');
             $table->json('images')->nullable();
             $table->string('type')->comment('hotel, restaurant, guesthouse, etc.');
-            $table->string('google_map_link')->nullable();
+            $table->text('google_map_link')->nullable();
             $table->text('description')->nullable();
             $table->decimal('review', 3, 2)->nullable();
             $table->double('latitude', 10, 6)->nullable();
