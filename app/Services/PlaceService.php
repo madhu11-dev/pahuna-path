@@ -25,7 +25,6 @@ class PlaceService
      */
     public function getPlaceWithReviewStats($place)
     {
-        // Calculate review statistics
         $reviewStats = PlaceReview::where('place_id', $place->id)
             ->selectRaw('
                     AVG(rating) as average_rating,
