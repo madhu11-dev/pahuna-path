@@ -1,0 +1,34 @@
+<?php
+
+namespace App\Http\Controllers;
+
+
+class AdminController extends Controller
+{
+    public function __construct(protected AdminAuthService $adminAuthService) {}
+        // Admin Logout
+    public function logout(Request $request)
+    {
+        try {
+            // Check if user is admin
+            if (!$request->user() || $request->user()->utype !== 'ADM') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthorized'
+                ], 403);
+            }
+
+            $loggedOut = $this->adminAuthService->adminLogout($request->user());
+            
+            return response()->json([
+                'status' => $loggedOut,
+                'message' => $loggedOut ? 'Logged out successfully' : 'Logout failed'
+            ], $loggedOut ? 200 : 400);
+        } catch (Throwable $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+}
