@@ -84,4 +84,30 @@ class AdminController extends Controller
         }
     }
 
+        // Get All Places
+    public function getAllPlaces(Request $request)
+    {
+        try {
+            // Check if user is admin
+            if (!$request->user() || $request->user()->utype !== 'ADM') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthorized'
+                ], 403);
+            }
+
+            $places = $this->adminAuthService->getAllPlaces();
+            
+            return response()->json([
+                'status' => true,
+                'places' => $places
+            ], 200);
+        } catch (Throwable $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
 }
