@@ -47,6 +47,7 @@ Route::prefix('admin')->controller(AdminController::class)->middleware('auth:san
     Route::get('/me', 'getAdminInfo');
     Route::get('/dashboard/stats', 'getDashboardStats');
     Route::get('/users', 'getAllUsers');
+    Route::delete('/users/{user}', 'deleteUser');
     Route::get('/places', 'getAllPlaces');
     Route::delete('/places/{place}', 'deletePlace');
     Route::post('/places/merge', 'mergePlaces');

@@ -138,6 +138,37 @@ class AdminAuthService
         return $accommodations->toArray();
     }
 
+    public function deleteUser(User $user): bool
+    {
+        try {
+            // Delete user's profile picture if exists
+            if ($user->profile_picture && file_exists(public_path($user->profile_picture))) {
+                unlink(public_path($user->profile_picture));
+            }
+
+            // Delete associated places and their images
+            $userPlaces = Place::where('user_id', $user->id)->get();
+            foreach ($userPlaces as $place) {
+                // Delete place images
+                if ($place->images && is_array($place->images)) {
+                    foreach ($place->images as $image) {
+                        $imagePath = storage_path('app/public/' . $image);
+                        if (file_exists($imagePath)) {
+                            unlink($imagePath);
+                        }
+                    }
+                }
+            }
+
+            // Delete the user (places and reviews will be cascade deleted due to foreign key constraints)
+            $user->delete();
+            
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
     public function deletePlace(Place $place): bool
     {
         try {
@@ -160,18 +191,10 @@ class AdminAuthService
         }
     }
 
-    public function mergePlaces(array $placeIds, int $primaryPlaceId, array $options): array
+    public function mergePlaces(array $placeIds, array $mergeData): array
     {
         try {
             DB::beginTransaction();
-
-            // Validate that primary place is in the list
-            if (!in_array($primaryPlaceId, $placeIds)) {
-                return [
-                    'success' => false,
-                    'message' => 'Primary place must be one of the selected places'
-                ];
-            }
 
             // Get all places to merge
             $places = Place::whereIn('id', $placeIds)->with(['reviews', 'user'])->get();
@@ -183,85 +206,58 @@ class AdminAuthService
                 ];
             }
 
-            $primaryPlace = $places->where('id', $primaryPlaceId)->first();
-            $placesToMerge = $places->where('id', '!=', $primaryPlaceId);
-
-            // Collect all images and reviews
-            $allImages = [];
+            // Collect all reviews from places being merged
             $allReviews = collect();
-
             foreach ($places as $place) {
-                // Collect images
-                if ($place->images && is_array($place->images)) {
-                    $allImages = array_merge($allImages, $place->images);
-                }
-
-                // Collect reviews
                 $allReviews = $allReviews->merge($place->reviews);
             }
 
-            // Update primary place
-            $updateData = [];
+            // Create new merged place
+            $newPlace = Place::create([
+                'place_name' => $mergeData['selectedPlaceName'],
+                'description' => $mergeData['selectedDescription'], 
+                'images' => $mergeData['selectedImages'], // Array of selected images
+                'google_map_link' => $mergeData['selectedLocation'],
+                'latitude' => $mergeData['selectedLatitude'] ?? null,
+                'longitude' => $mergeData['selectedLongitude'] ?? null,
+                'user_id' => $mergeData['userId'], // Admin user ID who performed the merge
+                'is_merged' => false, // This is the new main place
+                'merged_from_ids' => $placeIds // Track which places were merged to create this
+            ]);
 
-            // Handle images
-            if (!$options['keepPrimaryImages'] && !empty($allImages)) {
-                $updateData['images'] = array_unique($allImages);
+            // Transfer all reviews to the new merged place
+            foreach ($allReviews as $review) {
+                $review->update(['place_id' => $newPlace->id]);
             }
 
-            // Handle description
-            if (!$options['keepPrimaryDescription']) {
-                $descriptions = [];
-                foreach ($places as $place) {
-                    if ($place->description) {
-                        $descriptions[] = $place->description;
+            // Delete the original places (reviews are already transferred)
+            Place::whereIn('id', $placeIds)->delete();
+
+            // Clean up any orphaned image files from deleted places
+            foreach ($places as $place) {
+                if ($place->images && is_array($place->images)) {
+                    foreach ($place->images as $image) {
+                        // Only delete images that are not used in the new merged place
+                        if (!in_array($image, $mergeData['selectedImages'])) {
+                            $imagePath = storage_path('app/public/' . $image);
+                            if (file_exists($imagePath)) {
+                                unlink($imagePath);
+                            }
+                        }
                     }
                 }
-                if (!empty($descriptions)) {
-                    $updateData['description'] = implode(' | ', array_unique($descriptions));
-                }
-            }
-
-            // Track merged place IDs
-            $mergedFromIds = $placesToMerge->pluck('id')->toArray();
-            $existingMergedIds = $primaryPlace->merged_from_ids ?? [];
-            $updateData['merged_from_ids'] = array_unique(array_merge($existingMergedIds, $mergedFromIds));
-
-            // Update primary place
-            if (!empty($updateData)) {
-                $primaryPlace->update($updateData);
-            }
-
-            // Handle reviews merging
-            if ($options['mergeReviews']) {
-                foreach ($placesToMerge as $place) {
-                    // Update all reviews to point to primary place
-                    PlaceReview::where('place_id', $place->id)
-                        ->update(['place_id' => $primaryPlaceId]);
-                }
-            } else {
-                // Delete reviews from places being merged
-                foreach ($placesToMerge as $place) {
-                    PlaceReview::where('place_id', $place->id)->delete();
-                }
-            }
-
-            // Mark merged places as merged and hide them
-            foreach ($placesToMerge as $place) {
-                $place->update([
-                    'is_merged' => true,
-                    'merged_from_ids' => [$primaryPlaceId] // Track which place this was merged into
-                ]);
             }
 
             DB::commit();
 
             return [
                 'success' => true,
-                'message' => 'Places merged successfully',
+                'message' => 'Places merged successfully into new place',
                 'data' => [
-                    'primary_place_id' => $primaryPlaceId,
-                    'merged_place_ids' => $mergedFromIds,
-                    'total_reviews' => $allReviews->count()
+                    'new_place_id' => $newPlace->id,
+                    'merged_place_ids' => $placeIds,
+                    'total_reviews' => $allReviews->count(),
+                    'place_name' => $newPlace->place_name
                 ]
             ];
 

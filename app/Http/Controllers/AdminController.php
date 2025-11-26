@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Place;
+use App\Models\User;
 use App\Services\AdminAuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -142,11 +143,14 @@ class AdminController extends Controller
             $validator = Validator::make($request->all(), [
                 'placeIds' => 'required|array|min:2',
                 'placeIds.*' => 'required|integer|exists:places,id',
-                'primaryPlaceId' => 'required|integer|exists:places,id',
-                'options' => 'required|array',
-                'options.keepPrimaryImages' => 'required|boolean',
-                'options.keepPrimaryDescription' => 'required|boolean',
-                'options.mergeReviews' => 'required|boolean'
+                'mergeData' => 'required|array',
+                'mergeData.selectedPlaceName' => 'required|string|max:255',
+                'mergeData.selectedDescription' => 'required|string',
+                'mergeData.selectedImages' => 'required|array|min:1',
+                'mergeData.selectedLocation' => 'required|string',
+                'mergeData.selectedLatitude' => 'nullable|numeric',
+                'mergeData.selectedLongitude' => 'nullable|numeric',
+                'mergeData.userId' => 'required|integer|exists:users,id'
             ]);
 
             if ($validator->fails()) {
@@ -159,8 +163,7 @@ class AdminController extends Controller
 
             $merged = $this->adminAuthService->mergePlaces(
                 $request->placeIds,
-                $request->primaryPlaceId,
-                $request->options
+                $request->mergeData
             );
 
             return response()->json([
@@ -168,6 +171,40 @@ class AdminController extends Controller
                 'message' => $merged['message'],
                 'data' => $merged['data'] ?? null
             ], $merged['success'] ? 200 : 400);
+        } catch (Throwable $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    // Delete User
+    public function deleteUser(Request $request, User $user)
+    {
+        try {
+            // Check if user is admin
+            if (!$request->user() || $request->user()->utype !== 'ADM') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthorized'
+                ], 403);
+            }
+
+            // Prevent admin from deleting other admins
+            if ($user->utype === 'ADM') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Cannot delete admin users'
+                ], 403);
+            }
+
+            $deleted = $this->adminAuthService->deleteUser($user);
+            
+            return response()->json([
+                'status' => $deleted,
+                'message' => $deleted ? 'User deleted successfully' : 'Failed to delete user'
+            ], $deleted ? 200 : 400);
         } catch (Throwable $e) {
             return response()->json([
                 'status' => false,
