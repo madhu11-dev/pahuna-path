@@ -17,7 +17,6 @@ class FileUploadService
      */
     public function uploadProfilePicture(UploadedFile $file, string $directory = 'profile-pictures'): ?string
     {
-        try {
             // Generate unique filename
             $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
             
@@ -25,10 +24,6 @@ class FileUploadService
             $path = $file->storeAs($directory, $filename, 'public');
             
             return 'storage/' . $path;
-        } catch (\Exception $e) {
-            \Log::error('Profile picture upload failed: ' . $e->getMessage());
-            return null;
-        }
     }
 
     /**

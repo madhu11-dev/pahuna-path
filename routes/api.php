@@ -48,5 +48,7 @@ Route::prefix('admin')->controller(AdminController::class)->middleware('auth:san
     Route::get('/dashboard/stats', 'getDashboardStats');
     Route::get('/users', 'getAllUsers');
     Route::get('/places', 'getAllPlaces');
+    Route::delete('/places/{place}', 'deletePlace');
+    Route::post('/places/merge', 'mergePlaces');
     Route::get('/hotels', 'getAllHotels');
 });

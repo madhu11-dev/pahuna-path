@@ -40,10 +40,8 @@ class EmailService
         $user->markEmailAsVerified();
         event(new Verified($user));
 
-        // Set the frontend base URL, adjust this as necessary
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000'); // This assumes you're storing it in your .env
+        $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000'); 
 
-        // Redirect to the frontend's login page
         return redirect($frontendUrl . '/login?status=Email verified successfully! Please log in.');
     }
 }
