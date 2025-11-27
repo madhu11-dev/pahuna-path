@@ -21,6 +21,7 @@ Route::prefix('auth')->group(function () {
 
 Route::prefix('places')->controller(PlaceController::class)->group(function () {
     Route::get('/', 'index');
+    Route::get('/images', 'getPlaceImages'); // New endpoint for landing page images
     Route::post('/', 'store')->middleware('auth:sanctum');
     Route::get('/{place}', 'show');
     Route::put('/{place}', 'update')->middleware('auth:sanctum');
