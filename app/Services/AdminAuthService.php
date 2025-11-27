@@ -191,7 +191,85 @@ class AdminAuthService
 
         return $users->toArray();
     }
+   
+    public function mergePlaces(array $placeIds, array $mergeData): array
+    {
+        try {
+            DB::beginTransaction();
 
+            // Get all places to merge
+            $places = Place::whereIn('id', $placeIds)->with(['reviews', 'user'])->get();
+            
+            if ($places->count() !== count($placeIds)) {
+                return [
+                    'success' => false,
+                    'message' => 'Some places could not be found'
+                ];
+            }
+
+            // Collect all reviews from places being merged
+            $allReviews = collect();
+            foreach ($places as $place) {
+                $allReviews = $allReviews->merge($place->reviews);
+            }
+
+            // Create new merged place
+            $newPlace = Place::create([
+                'place_name' => $mergeData['selectedPlaceName'],
+                'description' => $mergeData['selectedDescription'], 
+                'images' => $mergeData['selectedImages'], // Array of selected images
+                'google_map_link' => $mergeData['selectedLocation'],
+                'latitude' => $mergeData['selectedLatitude'] ?? null,
+                'longitude' => $mergeData['selectedLongitude'] ?? null,
+                'user_id' => $mergeData['userId'], // Admin user ID who performed the merge
+                'is_merged' => false, // This is the new main place
+                'merged_from_ids' => $placeIds // Track which places were merged to create this
+            ]);
+
+            // Transfer all reviews to the new merged place
+            foreach ($allReviews as $review) {
+                $review->update(['place_id' => $newPlace->id]);
+            }
+
+            // Delete the original places (reviews are already transferred)
+            Place::whereIn('id', $placeIds)->delete();
+
+            // Clean up any orphaned image files from deleted places
+            foreach ($places as $place) {
+                if ($place->images && is_array($place->images)) {
+                    foreach ($place->images as $image) {
+                        // Only delete images that are not used in the new merged place
+                        if (!in_array($image, $mergeData['selectedImages'])) {
+                            $imagePath = storage_path('app/public/' . $image);
+                            if (file_exists($imagePath)) {
+                                unlink($imagePath);
+                            }
+                        }
+                    }
+                }
+            }
+
+            DB::commit();
+
+            return [
+                'success' => true,
+                'message' => 'Places merged successfully into new place',
+                'data' => [
+                    'new_place_id' => $newPlace->id,
+                    'merged_place_ids' => $placeIds,
+                    'total_reviews' => $allReviews->count(),
+                    'place_name' => $newPlace->place_name
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return [
+                'success' => false,
+                'message' => 'Failed to merge places: ' . $e->getMessage()
+            ];
+        }
+    }
 
 
 }
