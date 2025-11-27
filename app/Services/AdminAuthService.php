@@ -21,5 +21,26 @@ class AdminAuthService
         
         return false;
     }
+      public function getDashboardStats(): array
+    {
+        $totalUsers = User::count();
+        $totalPlaces = Place::count();
+        $totalHotels = Accommodation::count();
+        $totalReviews = PlaceReview::count();
+        
+        // Get monthly visitor data for graph (using place reviews as proxy for visits)
+        $monthlyVisits = PlaceReview::select(
+            DB::raw('MONTH(created_at) as month'),
+            DB::raw('COUNT(*) as visits')
+        )
+        ->whereYear('created_at', date('Y'))
+        ->groupBy('month')
+        ->orderBy('month')
+        ->get()
+        ->mapWithKeys(function ($item) {
+            return [$item->month => $item->visits];
+        });
+
+
 
 }
