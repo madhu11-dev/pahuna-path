@@ -10,6 +10,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Exception;
 
 class PlaceController extends Controller
 {
@@ -234,5 +235,55 @@ class PlaceController extends Controller
         }
 
         return $baseUrl;
+    }
+
+    /**
+     * Get place images for landing page slider
+     * Only returns image URLs for security
+     */
+    public function getPlaceImages()
+    {
+        try {
+            // Get places with images - using database-agnostic approach
+            $places = Place::whereNotNull('images')
+                          ->select('images')
+                          ->limit(50) // Get more places to have enough images
+                          ->get();
+
+            $allImages = [];
+            
+            foreach ($places as $place) {
+                // Ensure images is properly decoded if stored as JSON string
+                $images = $place->images;
+                if (is_string($images)) {
+                    $images = json_decode($images, true);
+                }
+                
+                if ($images && is_array($images) && count($images) > 0) {
+                    foreach ($images as $imagePath) {
+                        if ($imagePath && !empty(trim($imagePath))) {
+                            $allImages[] = $imagePath;
+                        }
+                    }
+                }
+            }
+
+            // Limit to 15 images for the slider
+            $limitedImages = array_slice($allImages, 0, 15);
+
+            return response()->json([
+                'status' => true,
+                'images' => $limitedImages
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error fetching place images: ' . $e->getMessage());
+            
+            return response()->json([
+                'status' => false,
+                'message' => 'Unable to fetch place images: ' . $e->getMessage(),
+                'images' => []
+            ], 500);
+        }
     }
 }
