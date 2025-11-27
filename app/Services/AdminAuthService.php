@@ -62,5 +62,26 @@ class AdminAuthService
             'visitor_graph_data' => $visitorGraphData
         ];
     }
+   
+    public function getAllUsers(): array
+    {
+        $users = User::select('id', 'name', 'email', 'created_at', 'profile_picture', 'utype')
+            ->where('utype', 'USR') // Only get regular users, not admins
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'created_at' => $user->created_at->format('Y-m-d H:i:s'),
+                    'profile_picture_url' => $user->profile_picture_url
+                ];
+            });
+
+        return $users->toArray();
+    }
+
+
 
 }
