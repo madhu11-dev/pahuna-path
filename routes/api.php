@@ -51,6 +51,7 @@ Route::prefix('admin')->controller(AdminController::class)->middleware('auth:san
     Route::delete('/users/{user}', 'deleteUser');
     Route::get('/places', 'getAllPlaces');
     Route::delete('/places/{place}', 'deletePlace');
+    Route::patch('/places/{place}/verify', 'toggleVerifyPlace');
     Route::post('/places/merge', 'mergePlaces');
     Route::get('/hotels', 'getAllHotels');
 });
