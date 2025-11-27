@@ -21,8 +21,7 @@ class AdminAuthService
         
         return false;
     }
-
-    public function getDashboardStats(): array
+      public function getDashboardStats(): array
     {
         $totalUsers = User::count();
         $totalPlaces = Place::count();
@@ -42,7 +41,8 @@ class AdminAuthService
             return [$item->month => $item->visits];
         });
 
-        // Fill missing months with 0
+
+       // Fill missing months with 0
         $visitorGraphData = [];
         for ($i = 1; $i <= 12; $i++) {
             $visitorGraphData[] = [
@@ -62,7 +62,7 @@ class AdminAuthService
             'visitor_graph_data' => $visitorGraphData
         ];
     }
-
+   
     public function getAllUsers(): array
     {
         $users = User::select('id', 'name', 'email', 'created_at', 'profile_picture', 'utype')
@@ -78,16 +78,12 @@ class AdminAuthService
                     'profile_picture_url' => $user->profile_picture_url
                 ];
             });
-
-        return $users->toArray();
-    }
-
-    public function getAllPlaces(): array
+             public function getAllPlaces(): array
     {
         $places = Place::with(['user:id,name,email,profile_picture', 'reviews' => function ($query) {
             $query->select('place_id', 'rating');
         }])
-        ->select('id', 'place_name', 'description', 'images', 'google_map_link', 'latitude', 'longitude', 'user_id', 'is_merged', 'merged_from_ids', 'created_at')
+        ->select('id', 'place_name', 'description', 'images', 'google_map_link', 'latitude', 'longitude', 'user_id', 'is_merged', 'merged_from_ids', 'is_verified', 'created_at')
         ->where('is_merged', false) // Only show non-merged places
         ->orderBy('created_at', 'desc')
         ->get()
@@ -113,6 +109,7 @@ class AdminAuthService
                 'average_rating' => round($averageRating, 1),
                 'is_merged' => $place->is_merged,
                 'merged_from_ids' => $place->merged_from_ids,
+                'is_verified' => $place->is_verified,
                 'created_at' => $place->created_at->format('Y-m-d H:i:s')
             ];
         });
@@ -191,6 +188,10 @@ class AdminAuthService
         }
     }
 
+
+        return $users->toArray();
+    }
+   
     public function mergePlaces(array $placeIds, array $mergeData): array
     {
         try {
@@ -269,4 +270,6 @@ class AdminAuthService
             ];
         }
     }
+
+
 }

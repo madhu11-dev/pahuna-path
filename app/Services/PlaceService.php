@@ -40,6 +40,7 @@ class PlaceService
             'google_map_link' => $place->google_map_link,
             'latitude' => $place->latitude,
             'longitude' => $place->longitude,
+            'is_verified' => $place->is_verified,
             'user' => $place->user ? [
                 'id' => $place->user->id,
                 'name' => $place->user->name,

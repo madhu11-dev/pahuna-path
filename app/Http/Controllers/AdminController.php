@@ -236,4 +236,34 @@ class AdminController extends Controller
             ]
         ], 200);
     }
+
+    // Toggle place verification status
+    public function toggleVerifyPlace(Request $request, Place $place)
+    {
+        try {
+            // Check if user is admin
+            if (!$request->user() || $request->user()->utype !== 'ADM') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthorized'
+                ], 403);
+            }
+
+            // Toggle verification status
+            $place->is_verified = !$place->is_verified;
+            $place->save();
+
+            return response()->json([
+                'status' => true,
+                'message' => $place->is_verified ? 'Place verified successfully' : 'Place verification removed',
+                'is_verified' => $place->is_verified
+            ], 200);
+
+        } catch (Throwable $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to update place verification: ' . $e->getMessage()
+            ], 400);
+        }
+    }
 }
