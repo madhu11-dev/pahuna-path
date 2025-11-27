@@ -6,9 +6,9 @@ use App\Models\User;
 use App\Models\Place;
 use App\Models\PlaceReview;
 use App\Models\Accommodation;
-use Illuminate\Support\Facades\Hash;
+
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+
 
 class AdminAuthService
 {
@@ -18,31 +18,31 @@ class AdminAuthService
             $user->currentAccessToken()->delete();
             return true;
         }
-        
+
         return false;
     }
-      public function getDashboardStats(): array
+
+    public function getDashboardStats(): array
     {
         $totalUsers = User::count();
         $totalPlaces = Place::count();
         $totalHotels = Accommodation::count();
         $totalReviews = PlaceReview::count();
-        
+
         // Get monthly visitor data for graph (using place reviews as proxy for visits)
         $monthlyVisits = PlaceReview::select(
             DB::raw('MONTH(created_at) as month'),
             DB::raw('COUNT(*) as visits')
         )
-        ->whereYear('created_at', date('Y'))
-        ->groupBy('month')
-        ->orderBy('month')
-        ->get()
-        ->mapWithKeys(function ($item) {
-            return [$item->month => $item->visits];
-        });
+            ->whereYear('created_at', date('Y'))
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->mapWithKeys(function ($item) {
+                return [$item->month => $item->visits];
+            });
 
-
-       // Fill missing months with 0
+        // Fill missing months with 0
         $visitorGraphData = [];
         for ($i = 1; $i <= 12; $i++) {
             $visitorGraphData[] = [
@@ -62,7 +62,7 @@ class AdminAuthService
             'visitor_graph_data' => $visitorGraphData
         ];
     }
-   
+
     public function getAllUsers(): array
     {
         $users = User::select('id', 'name', 'email', 'created_at', 'profile_picture', 'utype')
@@ -78,41 +78,45 @@ class AdminAuthService
                     'profile_picture_url' => $user->profile_picture_url
                 ];
             });
-             public function getAllPlaces(): array
+
+        return $users->toArray();
+    }
+
+    public function getAllPlaces(): array
     {
         $places = Place::with(['user:id,name,email,profile_picture', 'reviews' => function ($query) {
             $query->select('place_id', 'rating');
         }])
-        ->select('id', 'place_name', 'description', 'images', 'google_map_link', 'latitude', 'longitude', 'user_id', 'is_merged', 'merged_from_ids', 'is_verified', 'created_at')
-        ->where('is_merged', false) // Only show non-merged places
-        ->orderBy('created_at', 'desc')
-        ->get()
-        ->map(function ($place) {
-            $averageRating = $place->reviews->avg('rating') ?? 0;
-            $reviewCount = $place->reviews->count();
-            
-            return [
-                'id' => $place->id,
-                'place_name' => $place->place_name,
-                'description' => $place->description,
-                'images' => $place->images,
-                'google_map_link' => $place->google_map_link,
-                'latitude' => $place->latitude,
-                'longitude' => $place->longitude,
-                'user' => $place->user ? [
-                    'id' => $place->user->id,
-                    'name' => $place->user->name,
-                    'email' => $place->user->email,
-                    'profile_picture_url' => $place->user->profile_picture_url ?? 'http://localhost:8090/images/default-profile.png',
-                ] : null,
-                'review_count' => $reviewCount,
-                'average_rating' => round($averageRating, 1),
-                'is_merged' => $place->is_merged,
-                'merged_from_ids' => $place->merged_from_ids,
-                'is_verified' => $place->is_verified,
-                'created_at' => $place->created_at->format('Y-m-d H:i:s')
-            ];
-        });
+            ->select('id', 'place_name', 'description', 'images', 'google_map_link', 'latitude', 'longitude', 'user_id', 'is_merged', 'merged_from_ids', 'is_verified', 'created_at')
+            ->where('is_merged', false) // Only show non-merged places
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($place) {
+                $averageRating = $place->reviews->avg('rating') ?? 0;
+                $reviewCount = $place->reviews->count();
+
+                return [
+                    'id' => $place->id,
+                    'place_name' => $place->place_name,
+                    'description' => $place->description,
+                    'images' => $place->images,
+                    'google_map_link' => $place->google_map_link,
+                    'latitude' => $place->latitude,
+                    'longitude' => $place->longitude,
+                    'user' => $place->user ? [
+                        'id' => $place->user->id,
+                        'name' => $place->user->name,
+                        'email' => $place->user->email,
+                        'profile_picture_url' => $place->user->profile_picture_url ?? 'http://localhost:8090/images/default-profile.png',
+                    ] : null,
+                    'review_count' => $reviewCount,
+                    'average_rating' => round($averageRating, 1),
+                    'is_merged' => $place->is_merged,
+                    'merged_from_ids' => $place->merged_from_ids,
+                    'is_verified' => $place->is_verified,
+                    'created_at' => $place->created_at->format('Y-m-d H:i:s')
+                ];
+            });
 
         return $places->toArray();
     }
@@ -159,7 +163,7 @@ class AdminAuthService
 
             // Delete the user (places and reviews will be cascade deleted due to foreign key constraints)
             $user->delete();
-            
+
             return true;
         } catch (\Exception $e) {
             return false;
@@ -181,17 +185,13 @@ class AdminAuthService
 
             // Delete the place (reviews will be cascade deleted due to foreign key constraint)
             $place->delete();
-            
+
             return true;
         } catch (\Exception $e) {
             return false;
         }
     }
 
-
-        return $users->toArray();
-    }
-   
     public function mergePlaces(array $placeIds, array $mergeData): array
     {
         try {
@@ -199,7 +199,7 @@ class AdminAuthService
 
             // Get all places to merge
             $places = Place::whereIn('id', $placeIds)->with(['reviews', 'user'])->get();
-            
+
             if ($places->count() !== count($placeIds)) {
                 return [
                     'success' => false,
@@ -216,7 +216,7 @@ class AdminAuthService
             // Create new merged place
             $newPlace = Place::create([
                 'place_name' => $mergeData['selectedPlaceName'],
-                'description' => $mergeData['selectedDescription'], 
+                'description' => $mergeData['selectedDescription'],
                 'images' => $mergeData['selectedImages'], // Array of selected images
                 'google_map_link' => $mergeData['selectedLocation'],
                 'latitude' => $mergeData['selectedLatitude'] ?? null,
@@ -261,7 +261,6 @@ class AdminAuthService
                     'place_name' => $newPlace->place_name
                 ]
             ];
-
         } catch (\Exception $e) {
             DB::rollBack();
             return [
@@ -270,6 +269,4 @@ class AdminAuthService
             ];
         }
     }
-
-
 }
