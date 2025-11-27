@@ -42,5 +42,25 @@ class AdminAuthService
         });
 
 
+       // Fill missing months with 0
+        $visitorGraphData = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $visitorGraphData[] = [
+                'month' => date('M', mktime(0, 0, 0, $i, 1)),
+                'visits' => $monthlyVisits->get($i, 0)
+            ];
+        }
+
+        return [
+            'stats' => [
+                'total_users' => $totalUsers,
+                'total_visitors' => $totalReviews, // Using reviews as proxy for visitors
+                'total_places' => $totalPlaces,
+                'total_hotels' => $totalHotels,
+                'total_reviews' => $totalReviews
+            ],
+            'visitor_graph_data' => $visitorGraphData
+        ];
+    }
 
 }
