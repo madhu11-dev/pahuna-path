@@ -18,6 +18,7 @@ return new class extends Migration {
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->boolean('is_merged')->default(false); // For admin duplicate merging
             $table->json('merged_from_ids')->nullable(); // Track which places were merged into this one
+            $table->boolean('is_verified')->default(false); // For admin place verification
             $table->timestamps();
         });
     }
