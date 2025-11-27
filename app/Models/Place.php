@@ -19,12 +19,14 @@ class Place extends Model
         'longitude',
         'is_merged',
         'merged_from_ids',
+        'is_verified',
     ];
 
     protected $casts = [
         'images' => 'array',
         'is_merged' => 'boolean',
         'merged_from_ids' => 'array',
+        'is_verified' => 'boolean',
         'latitude' => 'float',
         'longitude' => 'float',
     ];
