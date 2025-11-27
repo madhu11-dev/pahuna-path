@@ -78,6 +78,116 @@ class AdminAuthService
                     'profile_picture_url' => $user->profile_picture_url
                 ];
             });
+             public function getAllPlaces(): array
+    {
+        $places = Place::with(['user:id,name,email,profile_picture', 'reviews' => function ($query) {
+            $query->select('place_id', 'rating');
+        }])
+        ->select('id', 'place_name', 'description', 'images', 'google_map_link', 'latitude', 'longitude', 'user_id', 'is_merged', 'merged_from_ids', 'is_verified', 'created_at')
+        ->where('is_merged', false) // Only show non-merged places
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function ($place) {
+            $averageRating = $place->reviews->avg('rating') ?? 0;
+            $reviewCount = $place->reviews->count();
+            
+            return [
+                'id' => $place->id,
+                'place_name' => $place->place_name,
+                'description' => $place->description,
+                'images' => $place->images,
+                'google_map_link' => $place->google_map_link,
+                'latitude' => $place->latitude,
+                'longitude' => $place->longitude,
+                'user' => $place->user ? [
+                    'id' => $place->user->id,
+                    'name' => $place->user->name,
+                    'email' => $place->user->email,
+                    'profile_picture_url' => $place->user->profile_picture_url ?? 'http://localhost:8090/images/default-profile.png',
+                ] : null,
+                'review_count' => $reviewCount,
+                'average_rating' => round($averageRating, 1),
+                'is_merged' => $place->is_merged,
+                'merged_from_ids' => $place->merged_from_ids,
+                'is_verified' => $place->is_verified,
+                'created_at' => $place->created_at->format('Y-m-d H:i:s')
+            ];
+        });
+
+        return $places->toArray();
+    }
+
+    public function getAllAccommodations(): array
+    {
+        $accommodations = Accommodation::select('id', 'name', 'description', 'image_path', 'created_at')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($accommodation) {
+                return [
+                    'id' => $accommodation->id,
+                    'name' => $accommodation->name,
+                    'description' => $accommodation->description,
+                    'image_url' => $accommodation->image_path ? asset($accommodation->image_path) : null,
+                    'created_at' => $accommodation->created_at->format('Y-m-d H:i:s')
+                ];
+            });
+
+        return $accommodations->toArray();
+    }
+
+    public function deleteUser(User $user): bool
+    {
+        try {
+            // Delete user's profile picture if exists
+            if ($user->profile_picture && file_exists(public_path($user->profile_picture))) {
+                unlink(public_path($user->profile_picture));
+            }
+
+            // Delete associated places and their images
+            $userPlaces = Place::where('user_id', $user->id)->get();
+            foreach ($userPlaces as $place) {
+                // Delete place images
+                if ($place->images && is_array($place->images)) {
+                    foreach ($place->images as $image) {
+                        $imagePath = storage_path('app/public/' . $image);
+                        if (file_exists($imagePath)) {
+                            unlink($imagePath);
+                        }
+                    }
+                }
+            }
+
+            // Delete the user (places and reviews will be cascade deleted due to foreign key constraints)
+            $user->delete();
+            
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    public function deletePlace(Place $place): bool
+    {
+        try {
+            // Delete associated files from storage
+            if ($place->images && is_array($place->images)) {
+                foreach ($place->images as $image) {
+                    $imagePath = storage_path('app/public/' . $image);
+                    if (file_exists($imagePath)) {
+                        unlink($imagePath);
+                    }
+                }
+            }
+
+            // Delete the place (reviews will be cascade deleted due to foreign key constraint)
+            $place->delete();
+            
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
 
         return $users->toArray();
     }
