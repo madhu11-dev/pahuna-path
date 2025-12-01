@@ -21,7 +21,7 @@ Route::prefix('auth')->group(function () {
 
 Route::prefix('places')->controller(PlaceController::class)->group(function () {
     Route::get('/', 'index');
-    Route::get('/images', 'getPlaceImages'); // New endpoint for landing page images
+    Route::get('/images', 'getPlaceImages');
     Route::post('/', 'store')->middleware('auth:sanctum');
     Route::get('/{place}', 'show');
     Route::put('/{place}', 'update')->middleware('auth:sanctum');
@@ -42,7 +42,6 @@ Route::prefix('accommodations')->controller(AccommodationController::class)->gro
 });
 
 // Protected admin routes - using regular auth:sanctum middleware
-// Admin authorization is checked within each controller method
 Route::prefix('admin')->controller(AdminController::class)->middleware('auth:sanctum')->group(function () {
     Route::post('/logout', 'logout');
     Route::get('/me', 'getAdminInfo');
