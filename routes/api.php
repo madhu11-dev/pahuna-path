@@ -3,6 +3,7 @@
 use App\Http\Controllers\EmailController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\StaffController;
 use App\Http\Middleware\AuthAdmin;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PlaceController;
@@ -11,12 +12,20 @@ use App\Http\Controllers\AccommodationController;
 
 Route::prefix('auth')->group(function () {
     Route::post('/register', [UserController::class, 'register']);
+    Route::post('/staff/register', [StaffController::class, 'register']);
     Route::get('/verify-email/{id}/{hash}', [EmailController::class, 'verification'])
         ->name('verification.verify');
     Route::post('/login', [UserController::class, 'login']);
     Route::post('/forgot-password', [UserController::class, 'forgotPassword']);
     Route::post('/reset-password', [UserController::class, 'resetPassword']);
     Route::post('/logout', [UserController::class, 'logout'])->middleware('auth:sanctum');
+    Route::get('/staff/status', [StaffController::class, 'checkApprovalStatus'])->middleware('auth:sanctum');
+});
+
+// Staff Dashboard Routes
+Route::prefix('staff')->middleware('auth:sanctum')->controller(StaffController::class)->group(function () {
+    Route::get('/dashboard', 'getDashboardData');
+    Route::post('/profile/update', 'updateProfile');
 });
 
 Route::prefix('places')->controller(PlaceController::class)->group(function () {
@@ -53,4 +62,7 @@ Route::prefix('admin')->controller(AdminController::class)->middleware('auth:san
     Route::patch('/places/{place}/verify', 'toggleVerifyPlace');
     Route::post('/places/merge', 'mergePlaces');
     Route::get('/hotels', 'getAllHotels');
+    Route::get('/accommodations/pending', 'getPendingAccommodations'); // Returns staff list
+    Route::patch('/accommodations/{staff}/approve', 'approveAccommodation'); // Approves staff
+    Route::delete('/accommodations/{staff}/reject', 'rejectAccommodation'); // Rejects staff
 });
