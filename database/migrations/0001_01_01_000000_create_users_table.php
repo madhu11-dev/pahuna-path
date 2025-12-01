@@ -20,7 +20,10 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('profile_picture')->nullable()->comment('Path to user profile picture');
-            $table->string('utype')->default('USR')->comment('USR for user, ADM for admin');
+            $table->string('utype')->default('USR')->comment('USR for user, ADM for admin, STF for staff');
+            $table->string('hotel_name')->nullable()->comment('Hotel name for staff users');
+            $table->string('phone')->nullable()->comment('Phone number');
+            $table->boolean('is_approved')->default(false)->comment('Admin approval status for staff');
             $table->rememberToken();
             $table->timestamps();
         });

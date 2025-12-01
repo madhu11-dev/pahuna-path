@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -26,6 +25,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'profile_picture',
         'utype',
+        'hotel_name',
+        'phone',
+        'is_approved',
     ];
 
     /**
@@ -61,6 +63,38 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         return asset('images/default-profile.png');
+    }
+
+    /**
+     * Check if user is admin
+     */
+    public function isAdmin(): bool
+    {
+        return $this->utype === 'ADM';
+    }
+
+    /**
+     * Check if user is regular user
+     */
+    public function isUser(): bool
+    {
+        return $this->utype === 'USR';
+    }
+
+    /**
+     * Check if user is hotel staff
+     */
+    public function isStaff(): bool
+    {
+        return $this->utype === 'STF';
+    }
+
+    /**
+     * Check if staff is approved by admin
+     */
+    public function isApproved(): bool
+    {
+        return $this->is_approved === true;
     }
 
     /**
