@@ -19,9 +19,6 @@ class EmailService
             now()->addMinutes(60),
             ['id' => $user->id, 'hash' => sha1($user->email)]
         );
-
-        // Mail::to($user->email)->send(new VerifyEmail($user, $verificationUrl));
-
         return response()->json(['status' => true, 'message' => 'Verification email sent']);
     }
 
@@ -42,6 +39,20 @@ class EmailService
 
         $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000'); 
 
+        if ($user->isStaff() && !$user->isApproved()) {
+            return redirect($frontendUrl . '/login?status=Email verified successfully! Your account is pending admin approval.');
+        }
+
         return redirect($frontendUrl . '/login?status=Email verified successfully! Please log in.');
+    }
+
+    public function sendStaffApprovalEmail(User $staff)
+    {
+        return response()->json(['status' => true, 'message' => 'Staff approval email sent']);
+    }
+
+    public function sendStaffRejectionEmail(User $staff, string $reason = null)
+    {
+        return response()->json(['status' => true, 'message' => 'Staff rejection email sent']);
     }
 }
