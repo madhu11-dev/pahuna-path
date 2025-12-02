@@ -25,6 +25,8 @@ class LoginUserAction
             return 'Not_verified'; // Email not verified
         }
 
+        // Staff can login regardless of approval status
+
         if (!Hash::check($validatedData['password'], $user->password)) {
             return 'Invalid_credentials'; // Wrong password
         }
