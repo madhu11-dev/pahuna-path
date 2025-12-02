@@ -47,6 +47,10 @@ class AuthService
             return ['status' => false, 'message' => 'Email not verified'];
         }
 
+        if ($user === 'Not_approved') {
+            return ['status' => false, 'message' => 'Your staff account is pending admin approval'];
+        }
+
         if ($user === 'Invalid_credentials') {
             return ['status' => false, 'message' => 'Invalid credentials'];
         }

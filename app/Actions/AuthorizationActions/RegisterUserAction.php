@@ -21,12 +21,29 @@ class RegisterUserAction
             );
         }
 
-        $user = User::create([
+        // Prepare user data
+        $userData = [
             'name' => $validatedData['name'],
             'email' => $validatedData['email'],
             'password' => Hash::make($validatedData['password']),
             'profile_picture' => $profilePicturePath,
-        ]);
+            'utype' => $validatedData['utype'] ?? 'USR',
+        ];
+
+        // Add optional fields if they exist
+        if (isset($validatedData['hotel_name'])) {
+            $userData['hotel_name'] = $validatedData['hotel_name'];
+        }
+        if (isset($validatedData['phone'])) {
+            $userData['phone'] = $validatedData['phone'];
+        }
+        if (isset($validatedData['is_approved'])) {
+            $userData['is_approved'] = $validatedData['is_approved'];
+        } elseif (isset($validatedData['utype']) && $validatedData['utype'] === 'STF') {
+            $userData['is_approved'] = false; // Staff default to not approved
+        }
+
+        $user = User::create($userData);
         
         $user->sendEmailVerificationNotification();
 

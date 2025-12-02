@@ -24,7 +24,10 @@ class AdminAuthService
 
     public function getDashboardStats(): array
     {
-        $totalUsers = User::count();
+        $totalUsers = User::where('utype', 'USR')->count();
+        $totalStaff = User::where('utype', 'STF')->count();
+        $pendingStaff = User::where('utype', 'STF')->where('is_approved', false)->count();
+        $pendingAccommodations = Accommodation::where('is_verified', false)->count();
         $totalPlaces = Place::count();
         $totalHotels = Accommodation::count();
         $totalReviews = PlaceReview::count();
@@ -54,6 +57,9 @@ class AdminAuthService
         return [
             'stats' => [
                 'total_users' => $totalUsers,
+                'total_staff' => $totalStaff,
+                'pending_staff' => $pendingStaff,
+                'pending_accommodations' => $pendingAccommodations,
                 'total_visitors' => $totalReviews, // Using reviews as proxy for visitors
                 'total_places' => $totalPlaces,
                 'total_hotels' => $totalHotels,
@@ -269,4 +275,103 @@ class AdminAuthService
             ];
         }
     }
+
+    public function getAllStaff(): array
+    {
+        $allStaff = User::where('utype', 'STF')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($staff) {
+                return [
+                    'id' => $staff->id,
+                    'name' => $staff->name,
+                    'email' => $staff->email,
+                    'hotel_name' => $staff->hotel_name,
+                    'phone' => $staff->phone,
+                    'email_verified_at' => $staff->email_verified_at,
+                    'created_at' => $staff->created_at->format('Y-m-d H:i:s'),
+                ];
+            });
+
+        return [
+            'success' => true,
+            'data' => $allStaff
+        ];
+    }
+
+    public function approveStaff(int $staffId): array
+    {
+        try {
+            $staff = User::where('id', $staffId)
+                ->where('utype', 'STF')
+                ->first();
+
+            if (!$staff) {
+                return [
+                    'success' => false,
+                    'message' => 'Staff not found'
+                ];
+            }
+
+            $staff->update([
+                'is_approved' => true,
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Staff approved successfully',
+                'data' => [
+                    'staff_name' => $staff->name,
+                    'hotel_name' => $staff->hotel_name,
+                    'email' => $staff->email,
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Failed to approve staff: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    public function rejectStaff(int $staffId): array
+    {
+        try {
+            $staff = User::where('id', $staffId)
+                ->where('utype', 'STF')
+                ->first();
+
+            if (!$staff) {
+                return [
+                    'success' => false,
+                    'message' => 'Staff not found'
+                ];
+            }
+
+            $staffName = $staff->name;
+            $hotelName = $staff->hotel_name;
+            $email = $staff->email;
+
+            // Set as not approved
+            $staff->update([
+                'is_approved' => false,
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Staff approval revoked',
+                'data' => [
+                    'staff_name' => $staffName,
+                    'hotel_name' => $hotelName,
+                    'email' => $email,
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Failed to reject staff: ' . $e->getMessage()
+            ];
+        }
+    }
 }
+

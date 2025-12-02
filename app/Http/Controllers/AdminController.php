@@ -266,4 +266,61 @@ class AdminController extends Controller
             ], 400);
         }
     }
+
+    // Get Pending Staff
+    public function getPendingAccommodations(Request $request)
+    {
+        if (!$request->user() || $request->user()->utype !== 'ADM') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        $result = $this->adminAuthService->getAllStaff();
+
+        return response()->json([
+            'status' => $result['success'],
+            'data' => $result['data'] ?? null,
+            'message' => $result['message'] ?? 'Staff list retrieved successfully'
+        ], $result['success'] ? 200 : 400);
+    }
+
+    // Approve Staff
+    public function approveAccommodation(Request $request, $staffId)
+    {
+        if (!$request->user() || $request->user()->utype !== 'ADM') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        $result = $this->adminAuthService->approveStaff($staffId);
+
+        return response()->json([
+            'status' => $result['success'],
+            'data' => $result['data'] ?? null,
+            'message' => $result['message']
+        ], $result['success'] ? 200 : 400);
+    }
+
+    // Reject Staff
+    public function rejectAccommodation(Request $request, $staffId)
+    {
+        if (!$request->user() || $request->user()->utype !== 'ADM') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        $result = $this->adminAuthService->rejectStaff($staffId);
+
+        return response()->json([
+            'status' => $result['success'],
+            'data' => $result['data'] ?? null,
+            'message' => $result['message']
+        ], $result['success'] ? 200 : 400);
+    }
 }
