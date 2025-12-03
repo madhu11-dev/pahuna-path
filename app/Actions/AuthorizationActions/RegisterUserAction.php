@@ -13,8 +13,8 @@ class RegisterUserAction
     public function handle(array $validatedData)
     {
         $profilePicturePath = null;
-        
-        // Handle profile picture upload if provided
+
+        // Handle profile picture upload 
         if (isset($validatedData['profile_picture']) && $validatedData['profile_picture']) {
             $profilePicturePath = $this->fileUploadService->uploadProfilePicture(
                 $validatedData['profile_picture']
@@ -31,20 +31,12 @@ class RegisterUserAction
         ];
 
         // Add optional fields if they exist
-        if (isset($validatedData['hotel_name'])) {
-            $userData['hotel_name'] = $validatedData['hotel_name'];
-        }
         if (isset($validatedData['phone'])) {
             $userData['phone'] = $validatedData['phone'];
         }
-        if (isset($validatedData['is_approved'])) {
-            $userData['is_approved'] = $validatedData['is_approved'];
-        } elseif (isset($validatedData['utype']) && $validatedData['utype'] === 'STF') {
-            $userData['is_approved'] = false; // Staff default to not approved
-        }
 
         $user = User::create($userData);
-        
+
         $user->sendEmailVerificationNotification();
 
         return $user;
