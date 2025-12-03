@@ -39,8 +39,11 @@ class EmailService
 
         $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000'); 
 
-        if ($user->isStaff() && !$user->isApproved()) {
-            return redirect($frontendUrl . '/login?status=Email verified successfully! Your account is pending admin approval.');
+        if ($user->isStaff()) {
+            $unverifiedHotel = $user->unverifiedHotel;
+            if ($unverifiedHotel && !$unverifiedHotel->is_verified) {
+                return redirect($frontendUrl . '/login?status=Email verified successfully! Your hotel registration is pending admin verification.');
+            }
         }
 
         return redirect($frontendUrl . '/login?status=Email verified successfully! Please log in.');
