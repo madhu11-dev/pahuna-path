@@ -1,33 +1,99 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+namespace App\Models;
 
-return new class extends Migration
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+
+class User extends Authenticatable implements MustVerifyEmail
 {
-    public function up(): void
+    /** @use HasFactory<\Database\Factories\UserFactory> */
+    use HasFactory, Notifiable;
+    use HasApiTokens;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'profile_picture',
+        'utype',
+        'phone',
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var list<string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
     {
-        Schema::create('accommodations', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->json('images')->nullable();
-            $table->string('type')->comment('hotel, restaurant, guesthouse, etc.');
-            $table->text('google_map_link')->nullable();
-            $table->text('description')->nullable();
-            $table->decimal('review', 3, 2)->nullable();
-            $table->double('latitude', 10, 6)->nullable();
-            $table->double('longitude', 10, 6)->nullable();
-            $table->foreignId('staff_id')->constrained('users')->onDelete('cascade')->comment('Staff managing this accommodation');
-            $table->boolean('is_verified')->default(false)->comment('Admin verification for accommodations');
-            $table->decimal('average_rating', 3, 2)->nullable()->comment('Average rating from reviews');
-            $table->integer('review_count')->default(0)->comment('Total number of reviews');
-            $table->timestamps();
-        });
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
     }
 
-    public function down(): void
+    /**
+     * Get the profile picture URL with fallback to default
+     */
+    public function getProfilePictureUrlAttribute(): string
     {
-        Schema::dropIfExists('accommodations');
+        if ($this->profile_picture && file_exists(public_path($this->profile_picture))) {
+            return asset($this->profile_picture);
+        }
+
+        return asset('images/default-profile.png');
     }
-};
+
+    /**
+     * Check if user is admin
+     */
+    public function isAdmin(): bool
+    {
+        return $this->utype === 'ADM';
+    }
+
+    /**
+     * Check if user is regular user
+     */
+    public function isUser(): bool
+    {
+        return $this->utype === 'USR';
+    }
+
+    /**
+     * Check if user is staff
+     */
+    public function isStaff(): bool
+    {
+        return $this->utype === 'STF';
+    }
+
+    /**
+     * Get accommodations managed by this staff user
+     */
+    public function accommodations()
+    {
+        return $this->hasMany(Accommodation::class, 'staff_id');
+    }
+
+    protected $appends = ['profile_picture_url'];
+}
