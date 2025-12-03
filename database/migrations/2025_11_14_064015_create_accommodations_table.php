@@ -18,8 +18,7 @@ return new class extends Migration
             $table->decimal('review', 3, 2)->nullable();
             $table->double('latitude', 10, 6)->nullable();
             $table->double('longitude', 10, 6)->nullable();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('place_id')->constrained('places')->onDelete('cascade');
+            $table->foreignId('staff_id')->constrained('users')->onDelete('cascade')->comment('Staff managing this accommodation');
             $table->boolean('is_verified')->default(false)->comment('Admin verification for accommodations');
             $table->decimal('average_rating', 3, 2)->nullable()->comment('Average rating from reviews');
             $table->integer('review_count')->default(0)->comment('Total number of reviews');
