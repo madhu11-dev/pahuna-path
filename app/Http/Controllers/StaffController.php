@@ -6,6 +6,10 @@ use App\Http\Requests\StaffRegisterRequest;
 use App\Http\Resources\UserResources\RegistrationResource;
 use App\Services\StaffService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Throwable;
 
 class StaffController extends Controller
@@ -19,7 +23,7 @@ class StaffController extends Controller
             $result = $this->staffService->registerStaff($validated);
 
             return (new RegistrationResource((object)[
-                'message' => 'Hotel staff registered successfully! Please verify your email to access your dashboard.'
+                'message' => 'Staff registered successfully! Please verify your email to access your dashboard.'
             ]))->response()->setStatusCode(201);
         } catch (Throwable $e) {
             return response()->json([
@@ -43,8 +47,7 @@ class StaffController extends Controller
 
             return response()->json([
                 'status' => true,
-                'email_verified' => $user->email_verified_at !== null,
-                'hotel_name' => $user->hotel_name
+                'email_verified' => $user->email_verified_at !== null
             ]);
         } catch (Throwable $e) {
             return response()->json([
@@ -76,11 +79,43 @@ class StaffController extends Controller
             $dashboardData = $this->staffService->getDashboardData($user);
 
             return response()->json([
-                'success' => true,
-                'staff' => $dashboardData['staff'],
-                'hotelStats' => $dashboardData['hotelStats']
+                'status' => true,
+                'data' => [
+                    'staff' => $dashboardData['staff'],
+                    'accommodations' => $dashboardData['accommodations'],
+                    'stats' => $dashboardData['stats']
+                ]
             ]);
         } catch (Throwable $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    public function logout(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user || !$user->isStaff()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Not a staff account'
+                ], 403);
+            }
+
+            // Delete current access token
+            if ($user->currentAccessToken()) {
+                $user->currentAccessToken()->delete();
+            }
+            
+            return response()->json([
+                'status' => true,
+                'message' => 'Staff logged out successfully'
+            ], 200);
+        } catch (\Throwable $e) {
             return response()->json([
                 'status' => false,
                 'message' => $e->getMessage()
@@ -107,16 +142,17 @@ class StaffController extends Controller
                 ], 403);
             }
 
-            $validated = $request->validate([
-                'name' => 'sometimes|string|max:255',
-                'phone' => 'sometimes|string|max:20',
-                'profile_picture' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048'
-            ]);
+            // Handle regular profile update
+                $validated = $request->validate([
+                    'name' => 'sometimes|string|max:255',
+                    'phone' => 'sometimes|string|max:20',
+                    'profile_picture' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048'
+                ]);
 
-            $updatedUser = $this->staffService->updateStaffProfile($user, $validated);
+                $updatedUser = $this->staffService->updateStaffProfile($user, $validated);
 
             return response()->json([
-                'success' => true,
+                'status' => true,
                 'message' => 'Profile updated successfully',
                 'user' => $updatedUser
             ]);
@@ -126,5 +162,14 @@ class StaffController extends Controller
                 'message' => $e->getMessage()
             ], 400);
         }
+    }
+    
+    /**
+     * Build public storage URL for uploaded files
+     */
+    private function buildPublicStorageUrl(Request $request, string $path): string
+    {
+        $baseUrl = $request->getSchemeAndHttpHost();
+        return $baseUrl . '/storage/' . $path;
     }
 }

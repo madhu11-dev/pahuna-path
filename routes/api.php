@@ -24,6 +24,7 @@ Route::prefix('auth')->group(function () {
 
 // Staff Dashboard Routes
 Route::prefix('staff')->middleware('auth:sanctum')->controller(StaffController::class)->group(function () {
+    Route::post('/logout', 'logout');
     Route::get('/dashboard', 'getDashboardData');
     Route::post('/profile/update', 'updateProfile');
 });
@@ -47,6 +48,7 @@ Route::prefix('places/{place}/reviews')->controller(PlaceReviewController::class
 Route::prefix('accommodations')->controller(AccommodationController::class)->group(function () {
     Route::get('/', 'index');
     Route::post('/', 'store')->middleware('auth:sanctum');
+    Route::put('/{accommodation}', 'update')->middleware('auth:sanctum');
     Route::delete('/{accommodation}', 'destroy')->middleware('auth:sanctum');
 });
 
@@ -61,8 +63,8 @@ Route::prefix('admin')->controller(AdminController::class)->middleware('auth:san
     Route::delete('/places/{place}', 'deletePlace');
     Route::patch('/places/{place}/verify', 'toggleVerifyPlace');
     Route::post('/places/merge', 'mergePlaces');
-    Route::get('/hotels', 'getAllHotels');
-    Route::get('/accommodations/pending', 'getPendingAccommodations'); // Returns staff list
-    Route::patch('/accommodations/{staff}/approve', 'approveAccommodation'); // Approves staff
-    Route::delete('/accommodations/{staff}/reject', 'rejectAccommodation'); // Rejects staff
+
+    Route::get('/staff', 'getAllStaff');
+    Route::get('/accommodations', [AccommodationController::class, 'indexAll']);
+    Route::patch('/accommodations/{accommodation}/verify', [AccommodationController::class, 'verify']);
 });
