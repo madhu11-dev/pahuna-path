@@ -90,24 +90,7 @@ class AdminController extends Controller
         ], 200);
     }
 
-    // Get All Hotels/Accommodations
-    public function getAllHotels(Request $request)
-    {
-        // Check if user is admin
-        if (!$request->user() || $request->user()->utype !== 'ADM') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized'
-            ], 403);
-        }
 
-        $hotels = $this->adminAuthService->getAllAccommodations();
-
-        return response()->json([
-            'status' => true,
-            'hotels' => $hotels
-        ], 200);
-    }
 
     // Delete Place
     public function deletePlace(Request $request, Place $place)
@@ -267,6 +250,21 @@ class AdminController extends Controller
         }
     }
 
+    // Get All Staff
+    public function getAllStaff(Request $request)
+    {
+        if (!$request->user() || $request->user()->utype !== 'ADM') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        $result = $this->adminAuthService->getAllStaff();
+
+        return response()->json($result, $result['success'] ? 200 : 400);
+    }
+
     // Get Pending Staff
     public function getPendingAccommodations(Request $request)
     {
@@ -286,41 +284,5 @@ class AdminController extends Controller
         ], $result['success'] ? 200 : 400);
     }
 
-    // Approve Staff
-    public function approveAccommodation(Request $request, $staffId)
-    {
-        if (!$request->user() || $request->user()->utype !== 'ADM') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized'
-            ], 403);
-        }
 
-        $result = $this->adminAuthService->approveStaff($staffId);
-
-        return response()->json([
-            'status' => $result['success'],
-            'data' => $result['data'] ?? null,
-            'message' => $result['message']
-        ], $result['success'] ? 200 : 400);
-    }
-
-    // Reject Staff
-    public function rejectAccommodation(Request $request, $staffId)
-    {
-        if (!$request->user() || $request->user()->utype !== 'ADM') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized'
-            ], 403);
-        }
-
-        $result = $this->adminAuthService->rejectStaff($staffId);
-
-        return response()->json([
-            'status' => $result['success'],
-            'data' => $result['data'] ?? null,
-            'message' => $result['message']
-        ], $result['success'] ? 200 : 400);
-    }
 }
