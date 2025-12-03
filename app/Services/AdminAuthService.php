@@ -22,27 +22,25 @@ class AdminAuthService
         return false;
     }
 
+
     public function getDashboardStats(): array
     {
-        $totalUsers = User::where('utype', 'USR')->count();
-        $totalStaff = User::where('utype', 'STF')->count();
-        $pendingStaff = User::where('utype', 'STF')->where('is_approved', false)->count();
-        $pendingAccommodations = Accommodation::where('is_verified', false)->count();
+        $totalUsers = User::count();
         $totalPlaces = Place::count();
-        $totalHotels = Accommodation::count();
+        $totalAccommodations = Accommodation::count();
         $totalReviews = PlaceReview::count();
 
-        // Get monthly visitor data for graph (using place reviews as proxy for visits)
+        // Get monthly visitor data for graph 
         $monthlyVisits = PlaceReview::select(
-            DB::raw('MONTH(created_at) as month'),
-            DB::raw('COUNT(*) as visits')
+            DB::raw('EXTRACT(MONTH FROM created_at) AS month'),
+            DB::raw('COUNT(*) AS visits')
         )
             ->whereYear('created_at', date('Y'))
-            ->groupBy('month')
+            ->groupBy(DB::raw('month'))
             ->orderBy('month')
             ->get()
             ->mapWithKeys(function ($item) {
-                return [$item->month => $item->visits];
+                return [(int)$item->month => $item->visits];
             });
 
         // Fill missing months with 0
@@ -57,12 +55,9 @@ class AdminAuthService
         return [
             'stats' => [
                 'total_users' => $totalUsers,
-                'total_staff' => $totalStaff,
-                'pending_staff' => $pendingStaff,
-                'pending_accommodations' => $pendingAccommodations,
-                'total_visitors' => $totalReviews, // Using reviews as proxy for visitors
+                'total_visitors' => $totalReviews,
                 'total_places' => $totalPlaces,
-                'total_hotels' => $totalHotels,
+                'total_accommodations' => $totalAccommodations,
                 'total_reviews' => $totalReviews
             ],
             'visitor_graph_data' => $visitorGraphData
@@ -286,7 +281,6 @@ class AdminAuthService
                     'id' => $staff->id,
                     'name' => $staff->name,
                     'email' => $staff->email,
-                    'hotel_name' => $staff->hotel_name,
                     'phone' => $staff->phone,
                     'email_verified_at' => $staff->email_verified_at,
                     'created_at' => $staff->created_at->format('Y-m-d H:i:s'),
@@ -299,79 +293,6 @@ class AdminAuthService
         ];
     }
 
-    public function approveStaff(int $staffId): array
-    {
-        try {
-            $staff = User::where('id', $staffId)
-                ->where('utype', 'STF')
-                ->first();
 
-            if (!$staff) {
-                return [
-                    'success' => false,
-                    'message' => 'Staff not found'
-                ];
-            }
-
-            $staff->update([
-                'is_approved' => true,
-            ]);
-
-            return [
-                'success' => true,
-                'message' => 'Staff approved successfully',
-                'data' => [
-                    'staff_name' => $staff->name,
-                    'hotel_name' => $staff->hotel_name,
-                    'email' => $staff->email,
-                ]
-            ];
-        } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Failed to approve staff: ' . $e->getMessage()
-            ];
-        }
-    }
-
-    public function rejectStaff(int $staffId): array
-    {
-        try {
-            $staff = User::where('id', $staffId)
-                ->where('utype', 'STF')
-                ->first();
-
-            if (!$staff) {
-                return [
-                    'success' => false,
-                    'message' => 'Staff not found'
-                ];
-            }
-
-            $staffName = $staff->name;
-            $hotelName = $staff->hotel_name;
-            $email = $staff->email;
-
-            // Set as not approved
-            $staff->update([
-                'is_approved' => false,
-            ]);
-
-            return [
-                'success' => true,
-                'message' => 'Staff approval revoked',
-                'data' => [
-                    'staff_name' => $staffName,
-                    'hotel_name' => $hotelName,
-                    'email' => $email,
-                ]
-            ];
-        } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Failed to reject staff: ' . $e->getMessage()
-            ];
-        }
-    }
 }
 

@@ -16,8 +16,7 @@ class Accommodation extends Model
         'google_map_link',
         'description',
         'review',
-        'user_id',
-        'place_id',
+        'staff_id',
         'latitude',
         'longitude',
         'is_verified',
@@ -27,19 +26,19 @@ class Accommodation extends Model
 
     protected $casts = [
         'images' => 'array',
+        'latitude' => 'float',
+        'longitude' => 'float',
+        'review' => 'float',
+        'average_rating' => 'float',
+        'is_verified' => 'boolean',
     ];
 
-    // Relationship with Place
-    public function place()
+    // Relationship with Staff User
+    public function staff()
     {
-        return $this->belongsTo(Place::class);
+        return $this->belongsTo(User::class, 'staff_id');
     }
 
-    // Relationship with User
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
 
     // Relationship with Reviews
     public function reviews()

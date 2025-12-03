@@ -17,10 +17,7 @@ class StaffService
     public function registerStaff(array $data)
     {
         return DB::transaction(function () use ($data) {
-            // Set staff-specific data
             $data['utype'] = 'STF';
-
-            // Register the user - they can access after email verification
             $user = $this->registerUserAction->handle($data);
 
             return $user;
@@ -29,27 +26,54 @@ class StaffService
 
     public function getDashboardData(User $staff): array
     {
-        // Staff can see basic statistics but need approval to manage accommodations
-        $staffAccommodations = Accommodation::where('user_id', $staff->id)->get();
+        $accommodations = $staff->accommodations;
         
-        $totalReviews = $staffAccommodations->sum('review_count');
-        $avgRating = $staffAccommodations->where('average_rating', '>', 0)->avg('average_rating');
+        $totalReviews = 0;
+        $avgRating = 0;
+        
+        if ($accommodations->isNotEmpty()) {
+            $accommodationIds = $accommodations->pluck('id');
+            $reviewStats = \DB::table('accommodation_reviews')
+                ->whereIn('accommodation_id', $accommodationIds)
+                ->selectRaw('COUNT(*) as total_reviews, AVG(rating) as avg_rating')
+                ->first();
+                
+            $totalReviews = $reviewStats ? (int) $reviewStats->total_reviews : 0;
+            $avgRating = $reviewStats && $reviewStats->avg_rating ? round((float) $reviewStats->avg_rating, 1) : 0;
+        }
         
         return [
             'staff' => [
                 'name' => $staff->name,
                 'email' => $staff->email,
                 'phone' => $staff->phone,
-                'hotel_name' => $staff->hotel_name,
                 'profile_picture' => $staff->profile_picture,
                 'email_verified_at' => $staff->email_verified_at,
             ],
-            'hotelStats' => [
-                'totalAccommodations' => $staffAccommodations->count(),
-                'verifiedAccommodations' => $staffAccommodations->where('is_verified', true)->count(),
-                'pendingAccommodations' => $staffAccommodations->where('is_verified', false)->count(),
+            'accommodations' => $accommodations->map(function ($accommodation) {
+                $reviewStats = \App\Models\AccommodationReview::where('accommodation_id', $accommodation->id)
+                    ->selectRaw('AVG(rating) as average_rating, COUNT(*) as review_count')
+                    ->first();
+                
+                return [
+                    'id' => $accommodation->id,
+                    'name' => $accommodation->name,
+                    'type' => $accommodation->type,
+                    'description' => $accommodation->description,
+                    'images' => $accommodation->images,
+                    'google_map_link' => $accommodation->google_map_link,
+                    'latitude' => $accommodation->latitude,
+                    'longitude' => $accommodation->longitude,
+                    'review' => $accommodation->review,
+                    'is_verified' => $accommodation->is_verified,
+                    'average_rating' => $reviewStats && $reviewStats->average_rating ? round((float) $reviewStats->average_rating, 1) : 0,
+                    'review_count' => $reviewStats ? (int) $reviewStats->review_count : 0,
+                ];
+            }),
+            'stats' => [
+                'totalAccommodations' => $accommodations->count(),
                 'totalReviews' => $totalReviews,
-                'averageRating' => $avgRating ? round($avgRating, 2) : 0,
+                'averageRating' => $avgRating,
             ]
         ];
     }
@@ -67,4 +91,6 @@ class StaffService
         $staff->update($data);
         return $staff->fresh();
     }
+
+
 }
