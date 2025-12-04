@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PlaceController;
 use App\Http\Controllers\PlaceReviewController;
 use App\Http\Controllers\AccommodationController;
+use App\Http\Controllers\AccommodationReviewController;
 
 Route::prefix('auth')->group(function () {
     Route::post('/register', [UserController::class, 'register']);
@@ -47,9 +48,17 @@ Route::prefix('places/{place}/reviews')->controller(PlaceReviewController::class
 
 Route::prefix('accommodations')->controller(AccommodationController::class)->group(function () {
     Route::get('/', 'index');
+    Route::get('/{accommodation}', 'show');
     Route::post('/', 'store')->middleware('auth:sanctum');
     Route::put('/{accommodation}', 'update')->middleware('auth:sanctum');
     Route::delete('/{accommodation}', 'destroy')->middleware('auth:sanctum');
+});
+
+Route::prefix('accommodations/{accommodation}/reviews')->controller(AccommodationReviewController::class)->group(function () {
+    Route::get('/', 'index');
+    Route::post('/', 'store')->middleware('auth:sanctum');
+    Route::put('/{review}', 'update')->middleware('auth:sanctum');
+    Route::delete('/{review}', 'destroy')->middleware('auth:sanctum');
 });
 
 // Protected admin routes - using regular auth:sanctum middleware
