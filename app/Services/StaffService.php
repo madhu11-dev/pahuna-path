@@ -64,7 +64,6 @@ class StaffService
                     'google_map_link' => $accommodation->google_map_link,
                     'latitude' => $accommodation->latitude,
                     'longitude' => $accommodation->longitude,
-                    'review' => $accommodation->review,
                     'is_verified' => $accommodation->is_verified,
                     'average_rating' => $reviewStats && $reviewStats->average_rating ? round((float) $reviewStats->average_rating, 1) : 0,
                     'review_count' => $reviewStats ? (int) $reviewStats->review_count : 0,
