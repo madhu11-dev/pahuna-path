@@ -23,16 +23,49 @@ class AccommodationController extends Controller
 
     public function index()
     {
-        // Public endpoint - only show verified accommodations
-        return AccommodationResource::collection(
-            Accommodation::where('is_verified', true)->latest()->get()
-        );
+        try {
+            // Public endpoint - only show verified accommodations
+            $accommodations = Accommodation::where('is_verified', true)
+                ->with('staff')
+                ->latest()
+                ->get();
+
+            $result = AccommodationResource::collection($accommodations);
+
+            return response()->json([
+                'status' => true,
+                'data' => $result
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unable to fetch accommodations: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function indexAll()
     {
         // Admin endpoint - show all accommodations
         return AccommodationResource::collection(Accommodation::latest()->get());
+    }
+
+    public function show(Accommodation $accommodation)
+    {
+        try {
+            // Load reviews with users and staff
+            $accommodation->load(['reviews.user', 'staff']);
+
+            return response()->json([
+                'status' => true,
+                'data' => new AccommodationResource($accommodation)
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unable to fetch accommodation details: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function store(StoreAccommodationRequest $request)
@@ -47,7 +80,7 @@ class AccommodationController extends Controller
                 ], 403);
             }
 
-            $data = $request->only(['name', 'type', 'description', 'review', 'google_map_link']);
+            $data = $request->only(['name', 'type', 'description', 'google_map_link']);
             $data['staff_id'] = $user->id;
             $data['is_verified'] = false; // Default to unverified, admin can verify later
 
@@ -81,13 +114,13 @@ class AccommodationController extends Controller
                     ]);
                 }
             }
-            
+
             // Allow accommodations without images for now (can be added later)
             if (empty($imageUrls)) {
                 $imageUrls = []; // Empty array if no images
                 Log::info('Accommodation created without images');
             }
-            
+
             $data['images'] = $imageUrls;
 
             $coords = $this->accommodationService->extractLocation($data['google_map_link'] ?? '');
@@ -102,12 +135,12 @@ class AccommodationController extends Controller
             ]);
 
             $accommodation = Accommodation::create($data);
-            
+
             Log::info('Accommodation created successfully', [
                 'accommodation_id' => $accommodation->id,
                 'accommodation_name' => $accommodation->name,
             ]);
-            
+
             return new AccommodationResource($accommodation);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -120,7 +153,7 @@ class AccommodationController extends Controller
                 'trace' => $e->getTraceAsString(),
                 'request_data' => $request->all()
             ]);
-            
+
             return response()->json([
                 'status' => false,
                 'message' => 'Failed to create accommodation: ' . $e->getMessage()
@@ -150,7 +183,7 @@ class AccommodationController extends Controller
                 ], 403);
             }
 
-            $data = $request->only(['name', 'type', 'description', 'review', 'google_map_link']);
+            $data = $request->only(['name', 'type', 'description', 'google_map_link']);
 
             // Handle image updates if provided
             if ($request->hasFile('images')) {
@@ -200,7 +233,7 @@ class AccommodationController extends Controller
                         ]);
                     }
                 }
-                
+
                 if (!empty($imageUrls)) {
                     $data['images'] = $imageUrls;
                 }
@@ -217,7 +250,6 @@ class AccommodationController extends Controller
 
             $accommodation->update($data);
             return new AccommodationResource($accommodation->fresh());
-            
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'status' => false,
@@ -226,7 +258,7 @@ class AccommodationController extends Controller
             ], 422);
         } catch (\Throwable $e) {
             Log::error('Accommodation update error: ' . $e->getMessage());
-            
+
             return response()->json([
                 'status' => false,
                 'message' => $e->getMessage()
@@ -328,8 +360,8 @@ class AccommodationController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => $accommodation->is_verified ? 
-                    'Accommodation verified successfully' : 
+                'message' => $accommodation->is_verified ?
+                    'Accommodation verified successfully' :
                     'Accommodation verification removed',
                 'accommodation' => new AccommodationResource($accommodation)
             ]);
@@ -341,4 +373,3 @@ class AccommodationController extends Controller
         }
     }
 }
-
