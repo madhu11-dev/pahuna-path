@@ -13,7 +13,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('accommodation_id')->constrained('accommodations')->onDelete('cascade');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->integer('rating')->comment('Rating from 1-5');
+            $table->float('rating', 2, 1)->comment('Rating from 1-5');
             $table->text('comment')->nullable();
             $table->timestamps();
 
