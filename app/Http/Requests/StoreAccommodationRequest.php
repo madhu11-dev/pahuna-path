@@ -23,7 +23,6 @@ class StoreAccommodationRequest extends FormRequest
             'name' => 'required|string|max:255',
             'type' => 'required|string|in:hotel,resort,guesthouse,lodge,hostel',
             'description' => 'required|string|max:2000',
-            'review' => 'sometimes|numeric|min:0|max:5',
             'google_map_link' => 'required|url',
             'images' => $imageRules,
             'images.*' => 'required|file|mimes:jpeg,jpg,png,gif,webp,avif,heic,heif|max:5120',
