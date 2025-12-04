@@ -15,7 +15,6 @@ class Accommodation extends Model
         'type',
         'google_map_link',
         'description',
-        'review',
         'staff_id',
         'latitude',
         'longitude',
@@ -28,7 +27,6 @@ class Accommodation extends Model
         'images' => 'array',
         'latitude' => 'float',
         'longitude' => 'float',
-        'review' => 'float',
         'average_rating' => 'float',
         'is_verified' => 'boolean',
     ];
@@ -51,7 +49,7 @@ class Accommodation extends Model
     {
         $avgRating = $this->reviews()->avg('rating');
         $reviewCount = $this->reviews()->count();
-        
+
         $this->update([
             'average_rating' => $avgRating ? round($avgRating, 2) : null,
             'review_count' => $reviewCount,
