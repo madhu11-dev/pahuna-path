@@ -15,7 +15,6 @@ return new class extends Migration
             $table->string('type')->comment('hotel, restaurant, guesthouse, etc.');
             $table->text('google_map_link')->nullable();
             $table->text('description')->nullable();
-            $table->decimal('review', 3, 2)->nullable();
             $table->double('latitude', 10, 6)->nullable();
             $table->double('longitude', 10, 6)->nullable();
             $table->foreignId('staff_id')->constrained('users')->onDelete('cascade')->comment('Staff managing this accommodation');
