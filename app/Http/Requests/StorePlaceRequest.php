@@ -17,13 +17,15 @@ class StorePlaceRequest extends FormRequest
             $this->isMethod('post') ? 'required' : 'sometimes',
             'array',
             'min:1',
-            'max:10', // Increased to allow more images
+            'max:10',
         ];
 
         return [
             'place_name' => 'required|string|max:255',
-            'description' => 'required|string|max:2000', // Changed from caption to description with more length
+            'description' => 'required|string|max:2000', 
             'google_map_link' => 'required|url',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
             'images' => $imageRules,
             'images.*' => 'required|file|mimes:jpeg,jpg,png,gif,webp,avif,heic,heif|max:10240',
         ];
