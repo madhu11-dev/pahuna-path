@@ -51,6 +51,7 @@ Route::prefix('accommodations')->controller(AccommodationController::class)->gro
     Route::get('/{accommodation}', 'show');
     Route::post('/', 'store')->middleware('auth:sanctum');
     Route::put('/{accommodation}', 'update')->middleware('auth:sanctum');
+    Route::post('/{accommodation}', 'update')->middleware('auth:sanctum'); // Support POST with _method=PUT for FormData
     Route::delete('/{accommodation}', 'destroy')->middleware('auth:sanctum');
 });
 

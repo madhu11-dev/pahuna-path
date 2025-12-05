@@ -14,7 +14,9 @@ use Throwable;
 
 class UserController extends Controller
 {
-    public function __construct(protected AuthService $authService) {}
+    public function __construct(protected AuthService $authService)
+    {
+    }
 
     // Registration
     public function register(RegisterRequest $request)
@@ -23,7 +25,7 @@ class UserController extends Controller
             $validated = $request->validated();
             $result = $this->authService->register($validated);
 
-            return (new RegistrationResource((object)[
+            return (new RegistrationResource((object) [
             ]))->response()->setStatusCode(201);
         } catch (Throwable $e) {
             return response()->json([
@@ -36,65 +38,41 @@ class UserController extends Controller
     // Login
     public function login(LoginRequest $request)
     {
-        try {
-            $validated = $request->validated();
-            $loginData = $this->authService->authLogin($validated);
+        $validated = $request->validated();
+        $loginData = $this->authService->authLogin($validated);
 
-            return (new LoginResource((object)$loginData))
-                ->response()
-                ->setStatusCode($loginData['status'] ? 200 : 401);
-        } catch (Throwable $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage()
-            ], 400);
-        }
+        return (new LoginResource((object) $loginData))
+            ->response()
+            ->setStatusCode($loginData['status'] ? 200 : 401);
+
     }
 
     public function forgotPassword(ForgotPasswordRequest $request)
     {
-        try {
-            $validated = $request->validated();
-            $response = $this->authService->sendResetPasswordLink($validated);
+        $validated = $request->validated();
+        $response = $this->authService->sendResetPasswordLink($validated);
 
-            return response()->json($response, $response['status'] ? 200 : 400);
-        } catch (Throwable $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ], 400);
-        }
+        return response()->json($response, $response['status'] ? 200 : 400);
+
     }
 
     public function resetPassword(ResetPasswordRequest $request)
     {
-        try {
-            $validated = $request->validated();
-            $response = $this->authService->resetPassword($validated);
+        $validated = $request->validated();
+        $response = $this->authService->resetPassword($validated);
 
-            return response()->json($response, $response['status'] ? 200 : 422);
-        } catch (Throwable $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ], 400);
-        }
+        return response()->json($response, $response['status'] ? 200 : 422);
+
     }
 
     public function logout(Request $request)
     {
-        try {
-            $loggedOut = $this->authService->logout($request->user());
-            
-            return response()->json([
-                'status' => $loggedOut,
-                'message' => $loggedOut ? 'Logged out successfully' : 'Logout failed'
-            ], $loggedOut ? 200 : 400);
-        } catch (Throwable $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage()
-            ], 400);
-        }
+        $loggedOut = $this->authService->logout($request->user());
+
+        return response()->json([
+            'status' => $loggedOut,
+            'message' => $loggedOut ? 'Logged out successfully' : 'Logout failed'
+        ], $loggedOut ? 200 : 400);
+
     }
 }
