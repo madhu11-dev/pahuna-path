@@ -93,10 +93,18 @@ class PlaceController extends Controller
             
             $data['images'] = $imageUrls;
 
-            $coords = $this->placeService->extractLocation($data['google_map_link'] ?? '');
-            if ($coords) {
-                $data['latitude'] = $coords['latitude'];
-                $data['longitude'] = $coords['longitude'];
+            // Use direct coordinates from frontend if provided, otherwise extract from Google Maps link
+            if (isset($data['latitude']) && isset($data['longitude'])) {
+                // Direct coordinates provided from frontend
+                $data['latitude'] = (float) $data['latitude'];
+                $data['longitude'] = (float) $data['longitude'];
+            } else {
+                // Fallback to extracting from Google Maps link
+                $coords = $this->placeService->extractLocation($data['google_map_link'] ?? '');
+                if ($coords) {
+                    $data['latitude'] = $coords['latitude'];
+                    $data['longitude'] = $coords['longitude'];
+                }
             }
 
             $place = Place::create($data);
