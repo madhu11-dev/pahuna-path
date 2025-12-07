@@ -15,15 +15,20 @@ class StoreAccommodationRequest extends FormRequest
     public function rules(): array
     {
         $imageRules = [
-            'sometimes', // Make images optional for now
+            'sometimes',
             'array',
             'max:5',
         ];
+        
+        $isUpdate = $this->isMethod('PUT') || $this->isMethod('PATCH') || $this->input('_method') === 'PUT';
+        
         return [
             'name' => 'required|string|max:255',
-            'type' => 'required|string|in:hotel,resort,guesthouse,lodge,hostel',
-            'description' => 'required|string|max:2000',
+            'type' => 'required|string|in:hotel,resort,guesthouse,lodge,hostel,restaurant',
+            'description' => ($isUpdate ? 'nullable' : 'required') . '|string|max:2000',
             'google_map_link' => 'required|url',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
             'images' => $imageRules,
             'images.*' => 'required|file|mimes:jpeg,jpg,png,gif,webp,avif,heic,heif|max:5120',
         ];

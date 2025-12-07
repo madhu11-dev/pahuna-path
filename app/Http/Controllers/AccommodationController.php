@@ -239,12 +239,19 @@ class AccommodationController extends Controller
                 }
             }
 
-            // Update coordinates if map link changed
+            // Update coordinates if map link changed or if coordinates provided directly
             if (isset($data['google_map_link'])) {
-                $coords = $this->accommodationService->extractLocation($data['google_map_link'] ?? '');
-                if ($coords) {
-                    $data['latitude'] = $coords['latitude'];
-                    $data['longitude'] = $coords['longitude'];
+                // Check if coordinates are provided directly (from map picker)
+                if ($request->has('latitude') && $request->has('longitude')) {
+                    $data['latitude'] = $request->input('latitude');
+                    $data['longitude'] = $request->input('longitude');
+                } else {
+                    // Extract from URL if coordinates not provided
+                    $coords = $this->accommodationService->extractLocation($data['google_map_link'] ?? '');
+                    if ($coords) {
+                        $data['latitude'] = $coords['latitude'];
+                        $data['longitude'] = $coords['longitude'];
+                    }
                 }
             }
 
