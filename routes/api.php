@@ -77,3 +77,10 @@ Route::prefix('admin')->controller(AdminController::class)->middleware('auth:san
     Route::get('/accommodations', [AccommodationController::class, 'indexAll']);
     Route::patch('/accommodations/{accommodation}/verify', [AccommodationController::class, 'verify']);
 });
+
+// User profile routes (authenticated)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', [UserController::class, 'profile']);
+    Route::patch('/user', [UserController::class, 'updateProfile']);
+    Route::post('/user/change-password', [UserController::class, 'changePassword']);
+});
