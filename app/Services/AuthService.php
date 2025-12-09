@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Actions\AuthorizationActions\LoginUserAction;
 use App\Actions\AuthorizationActions\RegisterUserAction;
 use App\Actions\AuthorizationActions\SendVerificationEmailAction;
+use App\Actions\AuthorizationActions\UpdateUserProfileAction;
 use App\Mail\ResetPasswordMail;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
@@ -20,6 +21,21 @@ class AuthService
         protected SendVerificationEmailAction $sendVerificationEmailAction,
         protected LoginUserAction $loginUserAction
     ) {}
+
+    /**
+     * Update user profile using action.
+     *
+     * @param \App\Models\User $user
+     * @param array $data
+     * @return \App\Models\User
+     */
+    public function updateProfile($user, array $data)
+    {
+        // Lazily resolve UpdateUserProfileAction from container if not injected
+        $action = app(UpdateUserProfileAction::class);
+
+        return $action->handle($user, $data);
+    }
 
     public function register(array $validatedData): array
     {
