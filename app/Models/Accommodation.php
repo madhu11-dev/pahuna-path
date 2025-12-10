@@ -64,6 +64,18 @@ class Accommodation extends Model
         return $this->hasMany(Booking::class);
     }
 
+    // Relationship with Verification Payment
+    public function verification()
+    {
+        return $this->hasOne(AccommodationVerification::class);
+    }
+
+    // Check if accommodation has paid verification fee
+    public function hasVerificationPayment()
+    {
+        return $this->verification()->where('payment_status', 'completed')->exists();
+    }
+
     // Update average rating when reviews change
     public function updateAverageRating()
     {
