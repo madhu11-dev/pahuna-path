@@ -20,7 +20,6 @@ class TransactionController extends Controller
                 ->paginate(20);
 
             return response()->json($transactions, 200);
-
         } catch (\Exception $e) {
             Log::error('Get user transactions error', [
                 'user_id' => $request->user()->id,
@@ -40,13 +39,18 @@ class TransactionController extends Controller
     {
         try {
             // Check if user is staff
-            if ($request->user()->role !== 'staff') {
+            if (!$request->user()->isStaff()) {
                 return response()->json([
                     'message' => 'Unauthorized'
                 ], 403);
             }
 
-            $query = Transaction::with(['booking.accommodation', 'booking.room', 'user']);
+            $staffId = $request->user()->id;
+
+            $query = Transaction::with(['booking.accommodation', 'booking.room', 'user'])
+                ->whereHas('booking.accommodation', function ($q) use ($staffId) {
+                    $q->where('staff_id', $staffId);
+                });
 
             // Filter by transaction type
             if ($request->has('transaction_type')) {
@@ -75,26 +79,35 @@ class TransactionController extends Controller
             // Search by transaction ID or booking reference
             if ($request->has('search')) {
                 $search = $request->search;
-                $query->where(function($q) use ($search) {
+                $query->where(function ($q) use ($search) {
                     $q->where('transaction_id', 'like', "%{$search}%")
-                      ->orWhereHas('booking', function($q2) use ($search) {
-                          $q2->where('booking_reference', 'like', "%{$search}%");
-                      });
+                        ->orWhereHas('booking', function ($q2) use ($search) {
+                            $q2->where('booking_reference', 'like', "%{$search}%");
+                        });
                 });
             }
 
             $transactions = $query->orderBy('created_at', 'desc')->paginate(20);
 
-            // Calculate statistics
+            // Calculate statistics - only for staff's accommodations
             $stats = [
                 'total_payments' => Transaction::where('transaction_type', 'payment')
                     ->where('status', 'completed')
+                    ->whereHas('booking.accommodation', function ($q) use ($staffId) {
+                        $q->where('staff_id', $staffId);
+                    })
                     ->sum('amount'),
                 'total_refunds' => Transaction::where('transaction_type', 'refund')
                     ->where('status', 'completed')
+                    ->whereHas('booking.accommodation', function ($q) use ($staffId) {
+                        $q->where('staff_id', $staffId);
+                    })
                     ->sum('amount'),
                 'pending_payments' => Transaction::where('transaction_type', 'payment')
                     ->where('status', 'pending')
+                    ->whereHas('booking.accommodation', function ($q) use ($staffId) {
+                        $q->where('staff_id', $staffId);
+                    })
                     ->count(),
             ];
 
@@ -102,7 +115,6 @@ class TransactionController extends Controller
                 'transactions' => $transactions,
                 'stats' => $stats
             ], 200);
-
         } catch (\Exception $e) {
             Log::error('Get staff transactions error', [
                 'user_id' => $request->user()->id,
@@ -126,14 +138,13 @@ class TransactionController extends Controller
 
             // Authorization check
             $user = $request->user();
-            if ($user->role !== 'staff' && $transaction->user_id !== $user->id) {
+            if (!$user->isStaff() && $transaction->user_id !== $user->id) {
                 return response()->json([
                     'message' => 'Unauthorized'
                 ], 403);
             }
 
             return response()->json($transaction, 200);
-
         } catch (\Exception $e) {
             Log::error('Get transaction details error', [
                 'transaction_id' => $transactionId,
