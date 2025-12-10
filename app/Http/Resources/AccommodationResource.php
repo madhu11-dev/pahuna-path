@@ -23,6 +23,8 @@ class AccommodationResource extends JsonResource
             'average_rating' => $this->average_rating,
             'review_count' => $this->review_count,
             'reviews' => $this->whenLoaded('reviews'),
+            'has_paid_verification' => $this->hasVerificationPayment(),
+            'verification' => $this->whenLoaded('verification'),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
