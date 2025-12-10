@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Place;
 use App\Models\PlaceReview;
 use App\Models\Accommodation;
+use App\Models\AccommodationReview;
 
 use Illuminate\Support\Facades\DB;
 
@@ -28,39 +29,40 @@ class AdminAuthService
         $totalUsers = User::count();
         $totalPlaces = Place::count();
         $totalAccommodations = Accommodation::count();
-        $totalReviews = PlaceReview::count();
+        $totalPlaceReviews = PlaceReview::count();
+        $totalAccommodationReviews = AccommodationReview::count();
+        $totalReviews = $totalPlaceReviews + $totalAccommodationReviews;
 
-        // Get monthly visitor data for graph 
-        $monthlyVisits = PlaceReview::select(
+        // Get monthly user registration data for graph 
+        $monthlyUserRegistrations = User::select(
             DB::raw('EXTRACT(MONTH FROM created_at) AS month'),
-            DB::raw('COUNT(*) AS visits')
+            DB::raw('COUNT(*) AS user_count')
         )
             ->whereYear('created_at', date('Y'))
             ->groupBy(DB::raw('month'))
             ->orderBy('month')
             ->get()
             ->mapWithKeys(function ($item) {
-                return [(int)$item->month => $item->visits];
+                return [(int)$item->month => $item->user_count];
             });
 
         // Fill missing months with 0
-        $visitorGraphData = [];
+        $userGraphData = [];
         for ($i = 1; $i <= 12; $i++) {
-            $visitorGraphData[] = [
+            $userGraphData[] = [
                 'month' => date('M', mktime(0, 0, 0, $i, 1)),
-                'visits' => $monthlyVisits->get($i, 0)
+                'users' => $monthlyUserRegistrations->get($i, 0)
             ];
         }
 
         return [
             'stats' => [
                 'total_users' => $totalUsers,
-                'total_visitors' => $totalReviews,
                 'total_places' => $totalPlaces,
                 'total_accommodations' => $totalAccommodations,
                 'total_reviews' => $totalReviews
             ],
-            'visitor_graph_data' => $visitorGraphData
+            'user_graph_data' => $userGraphData
         ];
     }
 
@@ -292,7 +294,4 @@ class AdminAuthService
             'data' => $allStaff
         ];
     }
-
-
 }
-
