@@ -17,6 +17,8 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->double('latitude', 10, 6)->nullable();
             $table->double('longitude', 10, 6)->nullable();
+            $table->text('checkout_policy')->nullable();
+            $table->text('cancellation_policy')->nullable();
             $table->foreignId('staff_id')->constrained('users')->onDelete('cascade')->comment('Staff managing this accommodation');
             $table->boolean('is_verified')->default(false)->comment('Admin verification for accommodations');
             $table->decimal('average_rating', 3, 2)->nullable()->comment('Average rating from reviews');
