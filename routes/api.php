@@ -58,6 +58,7 @@ Route::prefix('accommodations')->controller(AccommodationController::class)->gro
     Route::put('/{accommodation}', 'update')->middleware('auth:sanctum');
     Route::delete('/{accommodation}', 'destroy')->middleware('auth:sanctum');
     Route::post('/{accommodation}', 'update')->middleware('auth:sanctum');
+    Route::post('/{accommodation}/pay-verification', 'payVerificationFee')->middleware('auth:sanctum');
 });
 
 Route::prefix('accommodations/{accommodation}/rooms')->controller(RoomController::class)->group(function () {
