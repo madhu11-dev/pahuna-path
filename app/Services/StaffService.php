@@ -33,7 +33,7 @@ class StaffService
 
         if ($accommodations->isNotEmpty()) {
             $accommodationIds = $accommodations->pluck('id');
-            $reviewStats = \DB::table('accommodation_reviews')
+            $reviewStats = DB::table('accommodation_reviews')
                 ->whereIn('accommodation_id', $accommodationIds)
                 ->selectRaw('COUNT(*) as total_reviews, AVG(rating) as avg_rating')
                 ->first();

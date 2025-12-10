@@ -8,6 +8,7 @@ use App\Models\Room;
 use App\Models\ExtraService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class BookingController extends Controller
 {
@@ -217,14 +218,14 @@ class BookingController extends Controller
                         $refundMessage = "Refund of Rs. {$refundAmount} (80% of booking amount) has been processed.";
                     } else {
                         // Log the error but don't fail the cancellation
-                        \Log::error('Refund processing failed during cancellation', [
+                        Log::error('Refund processing failed during cancellation', [
                             'booking_id' => $booking->id,
                             'error' => $refundResult['message']
                         ]);
                         $refundMessage = "Booking cancelled. Refund processing is pending.";
                     }
                 } catch (\Exception $e) {
-                    \Log::error('Refund processing exception during cancellation', [
+                    Log::error('Refund processing exception during cancellation', [
                         'booking_id' => $booking->id,
                         'error' => $e->getMessage()
                     ]);
