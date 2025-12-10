@@ -18,6 +18,8 @@ class Accommodation extends Model
         'staff_id',
         'latitude',
         'longitude',
+        'checkout_policy',
+        'cancellation_policy',
         'is_verified',
         'average_rating',
         'review_count',
@@ -42,6 +44,24 @@ class Accommodation extends Model
     public function reviews()
     {
         return $this->hasMany(AccommodationReview::class);
+    }
+
+    // Relationship with Rooms
+    public function rooms()
+    {
+        return $this->hasMany(Room::class);
+    }
+
+    // Relationship with Extra Services
+    public function extraServices()
+    {
+        return $this->hasMany(ExtraService::class);
+    }
+
+    // Relationship with Bookings
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
     }
 
     // Update average rating when reviews change

@@ -117,9 +117,9 @@ class AuthService
             function ($user, $password) {
                 $user->forceFill([
                     'password' => Hash::make($password),
-                    'remember_token' => Str::random(60),
                 ])->save();
 
+                // Invalidate all existing API tokens for security
                 $user->tokens()->delete();
 
                 event(new PasswordReset($user));
