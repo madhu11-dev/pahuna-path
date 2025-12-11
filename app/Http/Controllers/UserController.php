@@ -2,180 +2,138 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\ForgotPasswordRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\ResetPasswordRequest;
+use App\Http\Requests\UpdateProfileRequest;
+use App\Http\Resources\UserResource;
 use App\Http\Resources\UserResources\LoginResource;
 use App\Http\Resources\UserResources\RegistrationResource;
 use App\Services\AuthService;
-use App\Services\FileUploadService;
-use App\Http\Requests\UpdateProfileRequest;
-use App\Http\Requests\ChangePasswordRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Throwable;
 
 class UserController extends Controller
 {
-    public function __construct(protected AuthService $authService, protected FileUploadService $fileUploadService) {}
+    public function __construct(protected AuthService $authService) {}
 
-    // Registration
-    public function register(RegisterRequest $request)
+    /**
+     * Register new user
+     */
+    public function register(RegisterRequest $request): JsonResponse
     {
-        try {
-            $validated = $request->validated();
-            $result = $this->authService->register($validated);
+        $result = $this->authService->register($request->validated());
 
-            return (new RegistrationResource((object) [
-            ]))->response()->setStatusCode(201);
-        } catch (Throwable $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage()
-            ], 400);
-        }
-    }
-
-    // Login
-    public function login(LoginRequest $request)
-    {
-        $validated = $request->validated();
-        $loginData = $this->authService->authLogin($validated);
-
-        return (new LoginResource((object) $loginData))
-            ->response()
-            ->setStatusCode($loginData['status'] ? 200 : 401);
-
-    }
-
-    public function forgotPassword(ForgotPasswordRequest $request)
-    {
-        $validated = $request->validated();
-        $response = $this->authService->sendResetPasswordLink($validated);
-
-        return response()->json($response, $response['status'] ? 200 : 400);
-
-    }
-
-    public function resetPassword(ResetPasswordRequest $request)
-    {
-        $validated = $request->validated();
-        $response = $this->authService->resetPassword($validated);
-
-        return response()->json($response, $response['status'] ? 200 : 422);
-
-    }
-
-    public function logout(Request $request)
-    {
-        $loggedOut = $this->authService->logout($request->user());
-
-        return response()->json([
-            'status' => $loggedOut,
-            'message' => $loggedOut ? 'Logged out successfully' : 'Logout failed'
-        ], $loggedOut ? 200 : 400);
-
+        return (new RegistrationResource((object)[]))->response()->setStatusCode(201);
     }
 
     /**
-     * Get current authenticated user's profile
+     * Login user
      */
-    public function profile(Request $request)
+    public function login(LoginRequest $request): JsonResponse
     {
-        $user = $request->user();
+        $loginData = $this->authService->authLogin($request->validated());
+
+        return (new LoginResource((object)$loginData))
+            ->response()
+            ->setStatusCode($loginData['status'] ? 200 : 401);
+    }
+
+    /**
+     * Forgot password - send reset link
+     */
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    {
+        $response = $this->authService->sendResetPasswordLink($request->validated());
+
+        return response()->json($response, $response['status'] ? 200 : 400);
+    }
+
+    /**
+     * Reset password with token
+     */
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
+    {
+        $response = $this->authService->resetPassword($request->validated());
+
+        return response()->json($response, $response['status'] ? 200 : 422);
+    }
+
+    /**
+     * Logout user
+     * Middleware: auth:sanctum
+     */
+    public function logout(Request $request): JsonResponse
+    {
+        $this->authService->logout($request->user());
 
         return response()->json([
             'status' => true,
-            'data' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'utype' => $user->utype,
-                'profile_picture_url' => $user->profile_picture_url,
-            ]
-        ], 200);
+            'message' => 'Logged out successfully'
+        ]);
     }
 
     /**
-     * Update profile (name and profile picture)
+     * Get current user profile
+     * Middleware: auth:sanctum
      */
+    public function profile(Request $request): JsonResponse
+    {
+        return response()->json([
+            'status' => true,
+            'data' => new UserResource($request->user())
+        ]);
+    }
 
-public function updateProfile(UpdateProfileRequest $request)
-{
-    try {
-        $user = $request->user();
+    /**
+     * Update user profile
+     * Middleware: auth:sanctum
+     */
+    public function updateProfile(UpdateProfileRequest $request): JsonResponse
+    {
         $data = $request->validated();
 
-        // Fallback: if validated data is empty (client may send FormData incorrectly), try to read name
-        if (empty($data) && $request->has('name')) {
-            $data['name'] = $request->input('name');
-        }
-
-        // Attach uploaded file (UploadedFile instance) so the action can handle upload
+        // Attach uploaded file if present
         if ($request->hasFile('profile_picture')) {
             $data['profile_picture'] = $request->file('profile_picture');
         }
 
-        $updatedUser = $this->authService->updateProfile($user, $data);
+        $updatedUser = $this->authService->updateProfile($request->user(), $data);
 
         return response()->json([
             'status' => true,
-            'data' => [
-                'id' => $updatedUser->id,
-                'name' => $updatedUser->name,
-                'email' => $updatedUser->email,
-                'utype' => $updatedUser->utype,
-                'profile_picture_url' => $updatedUser->profile_picture_url,
-            ]
-        ], 200);
-    } catch (Throwable $e) {
-        return response()->json([
-            'status' => false,
-            'message' => $e->getMessage()
-        ], 400);
+            'data' => new UserResource($updatedUser)
+        ]);
     }
-}
 
     /**
-     * Change password (requires current password)
+     * Change password
+     * Middleware: auth:sanctum
      */
-    public function changePassword(ChangePasswordRequest $request)
+    public function changePassword(ChangePasswordRequest $request): JsonResponse
     {
-        try {
-            $user = $request->user();
+        $user = $request->user();
 
-            $current = $request->input('current_password');
-            $new = $request->input('new_password');
-
-            if (!Hash::check($current, $user->password)) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Current password is incorrect.'
-                ], 403);
-            }
-
-            $user->password = Hash::make($new);
-            // Invalidate other tokens
-            $user->tokens()->delete();
-            $user->save();
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Password changed successfully',
-                'data' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'utype' => $user->utype,
-                    'profile_picture_url' => $user->profile_picture_url,
-                ]
-            ], 200);
-        } catch (Throwable $e) {
+        // Verify current password
+        if (!Hash::check($request->current_password, $user->password)) {
             return response()->json([
                 'status' => false,
-                'message' => $e->getMessage()
-            ], 400);
+                'message' => 'Current password is incorrect.'
+            ], 403);
         }
+
+        // Update password and invalidate other tokens
+        $user->password = Hash::make($request->new_password);
+        $user->tokens()->delete();
+        $user->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Password changed successfully',
+            'data' => new UserResource($user)
+        ]);
     }
 }

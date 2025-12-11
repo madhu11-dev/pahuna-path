@@ -69,4 +69,59 @@ class FileUploadService
 
         return $errors;
     }
+
+    /**
+     * Upload multiple files and return array of URLs
+     *
+     * @param array $files
+     * @param string $directory
+     * @param mixed $request
+     * @return array
+     */
+    public function uploadMultiple(array $files, string $directory, $request): array
+    {
+        $urls = [];
+
+        foreach ($files as $file) {
+            if (!$file || !$file->isValid()) {
+                \Log::warning('Invalid file upload skipped', [
+                    'file' => $file ? $file->getClientOriginalName() : null,
+                ]);
+                continue;
+            }
+
+            try {
+                if (!Storage::disk('public')->exists($directory)) {
+                    Storage::disk('public')->makeDirectory($directory);
+                }
+
+                $path = $file->store($directory, 'public');
+
+                if (!$path) {
+                    \Log::error('Failed to store file: ' . $file->getClientOriginalName());
+                    continue;
+                }
+
+                $urls[] = $this->buildPublicStorageUrl($request, $path);
+            } catch (\Throwable $e) {
+                \Log::error('Error storing file: ' . $e->getMessage(), [
+                    'trace' => $e->getTraceAsString(),
+                ]);
+            }
+        }
+
+        return $urls;
+    }
+
+    /**
+     * Build public storage URL
+     *
+     * @param mixed $request
+     * @param string $path
+     * @return string
+     */
+    private function buildPublicStorageUrl($request, string $path): string
+    {
+        return $request->getSchemeAndHttpHost() . '/storage/' . $path;
+    }
 }

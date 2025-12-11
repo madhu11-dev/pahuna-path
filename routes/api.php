@@ -9,124 +9,177 @@ use App\Http\Controllers\ExtraServiceController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TransactionController;
-use App\Http\Middleware\AuthAdmin;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PlaceController;
 use App\Http\Controllers\PlaceReviewController;
 use App\Http\Controllers\AccommodationController;
 use App\Http\Controllers\AccommodationReviewController;
 
+/*
+|--------------------------------------------------------------------------
+| API Routes - Refactored & Organized
+|--------------------------------------------------------------------------
+| Routes are grouped by domain for better organization and maintainability
+| Middleware is applied at group level where appropriate
+*/
+
 Route::prefix('auth')->group(function () {
     Route::post('/register', [UserController::class, 'register']);
     Route::post('/staff/register', [StaffController::class, 'register']);
-    Route::get('/verify-email/{id}/{hash}', [EmailController::class, 'verification'])
-        ->name('verification.verify');
     Route::post('/login', [UserController::class, 'login']);
     Route::post('/forgot-password', [UserController::class, 'forgotPassword']);
     Route::post('/reset-password', [UserController::class, 'resetPassword']);
-    Route::post('/logout', [UserController::class, 'logout'])->middleware('auth:sanctum');
-    Route::get('/staff/status', [StaffController::class, 'checkApprovalStatus'])->middleware('auth:sanctum');
+
+    Route::get('/verify-email/{id}/{hash}', [EmailController::class, 'verification'])
+        ->name('verification.verify');
+
+    // Protected authentication routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/logout', [UserController::class, 'logout']);
+        Route::get('/staff/status', [StaffController::class, 'checkApprovalStatus']);
+    });
 });
 
-// Staff Dashboard Routes
-Route::prefix('staff')->middleware('auth:sanctum')->controller(StaffController::class)->group(function () {
-    Route::post('/logout', 'logout');
-    Route::get('/dashboard', 'getDashboardData');
-    Route::post('/profile/update', 'updateProfile');
+// user profile 
+Route::prefix('user')->middleware('auth:sanctum')->group(function () {
+    Route::get('/', [UserController::class, 'profile']);
+    Route::patch('/', [UserController::class, 'updateProfile']);
+    Route::post('/change-password', [UserController::class, 'changePassword']);
 });
 
-Route::prefix('places')->controller(PlaceController::class)->group(function () {
-    Route::get('/', 'index');
-    Route::get('/images', 'getPlaceImages');
-    Route::post('/', 'store')->middleware('auth:sanctum');
-    Route::get('/{place}', 'show');
-    Route::put('/{place}', 'update')->middleware('auth:sanctum');
-    Route::delete('/{place}', 'destroy')->middleware('auth:sanctum');
+// staff dashabord
+Route::prefix('staff')->middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [StaffController::class, 'logout']);
+    Route::get('/dashboard', [StaffController::class, 'getDashboardData']);
+    Route::post('/profile/update', [StaffController::class, 'updateProfile']);
 });
 
-Route::prefix('places/{place}/reviews')->controller(PlaceReviewController::class)->group(function () {
-    Route::get('/', 'index');
-    Route::post('/', 'store')->middleware('auth:sanctum');
-    Route::put('/{review}', 'update')->middleware('auth:sanctum');
-    Route::delete('/{review}', 'destroy')->middleware('auth:sanctum');
+
+// places
+Route::prefix('places')->group(function () {
+    // Public routes
+    Route::get('/', [PlaceController::class, 'index']);
+    Route::get('/images', [PlaceController::class, 'getPlaceImages']);
+    Route::get('/{place}', [PlaceController::class, 'show']);
+
+    // Protected routes (authenticated users can create places)
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/', [PlaceController::class, 'store']);
+        Route::put('/{place}', [PlaceController::class, 'update']);
+        Route::delete('/{place}', [PlaceController::class, 'destroy']);
+    });
+
+    // Place Reviews
+    Route::prefix('{place}/reviews')->group(function () {
+        Route::get('/', [PlaceReviewController::class, 'index']);
+
+        Route::middleware('auth:sanctum')->group(function () {
+            Route::post('/', [PlaceReviewController::class, 'store']);
+            Route::put('/{review}', [PlaceReviewController::class, 'update']);
+            Route::delete('/{review}', [PlaceReviewController::class, 'destroy']);
+        });
+    });
 });
 
-Route::prefix('accommodations')->controller(AccommodationController::class)->group(function () {
-    Route::get('/', 'index');
-    Route::get('/{accommodation}', 'show');
-    Route::post('/', 'store')->middleware('auth:sanctum');
-    Route::put('/{accommodation}', 'update')->middleware('auth:sanctum');
-    Route::post('/{accommodation}', 'update')->middleware('auth:sanctum'); // Support POST with _method=PUT for FormData
-    Route::delete('/{accommodation}', 'destroy')->middleware('auth:sanctum');
-    Route::post('/{accommodation}', 'update')->middleware('auth:sanctum');
-    Route::post('/{accommodation}/pay-verification', 'payVerificationFee')->middleware('auth:sanctum');
+// accomodatons
+Route::prefix('accommodations')->group(function () {
+    // Public routes
+    Route::get('/', [AccommodationController::class, 'index']);
+    Route::get('/{accommodation}', [AccommodationController::class, 'show']);
+
+    // Protected routes (staff only)
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/', [AccommodationController::class, 'store']);
+        Route::put('/{accommodation}', [AccommodationController::class, 'update']);
+        Route::post('/{accommodation}', [AccommodationController::class, 'update']); // Support POST for multipart
+        Route::delete('/{accommodation}', [AccommodationController::class, 'destroy']);
+        Route::post('/{accommodation}/pay-verification', [AccommodationController::class, 'payVerificationFee']);
+    });
+
+    // Accommodation Rooms
+    Route::prefix('{accommodation}/rooms')->group(function () {
+        Route::get('/', [RoomController::class, 'index']);
+        Route::post('/{room}/availability', [RoomController::class, 'checkAvailability']);
+
+        Route::middleware('auth:sanctum')->group(function () {
+            Route::post('/', [RoomController::class, 'store']);
+            Route::put('/{room}', [RoomController::class, 'update']);
+            Route::post('/{room}', [RoomController::class, 'update']); // Support POST for multipart
+            Route::delete('/{room}', [RoomController::class, 'destroy']);
+        });
+    });
+
+    // Accommodation Extra Services
+    Route::prefix('{accommodation}/services')->group(function () {
+        Route::get('/', [ExtraServiceController::class, 'index']);
+
+        Route::middleware('auth:sanctum')->group(function () {
+            Route::post('/', [ExtraServiceController::class, 'store']);
+            Route::put('/{service}', [ExtraServiceController::class, 'update']);
+            Route::delete('/{service}', [ExtraServiceController::class, 'destroy']);
+        });
+    });
+
+    // Accommodation Reviews
+    Route::prefix('{accommodation}/reviews')->group(function () {
+        Route::get('/', [AccommodationReviewController::class, 'index']);
+
+        Route::middleware('auth:sanctum')->group(function () {
+            Route::post('/', [AccommodationReviewController::class, 'store']);
+            Route::put('/{review}', [AccommodationReviewController::class, 'update']);
+            Route::delete('/{review}', [AccommodationReviewController::class, 'destroy']);
+        });
+    });
 });
 
-Route::prefix('accommodations/{accommodation}/rooms')->controller(RoomController::class)->group(function () {
-    Route::get('/', 'index');
-    Route::post('/', 'store')->middleware('auth:sanctum');
-    Route::put('/{room}', 'update')->middleware('auth:sanctum');
-    Route::post('/{room}', 'update')->middleware('auth:sanctum');
-    Route::delete('/{room}', 'destroy')->middleware('auth:sanctum');
-    Route::post('/{room}/availability', 'checkAvailability');
+// bookings
+Route::prefix('bookings')->middleware('auth:sanctum')->group(function () {
+    Route::get('/', [BookingController::class, 'index']);
+    Route::get('/{booking}', [BookingController::class, 'show']);
+    Route::post('/', [BookingController::class, 'store']);
+    Route::patch('/{booking}/status', [BookingController::class, 'updateStatus']);
+    Route::patch('/{booking}/cancel', [BookingController::class, 'cancel']);
 });
 
-Route::prefix('accommodations/{accommodation}/services')->controller(ExtraServiceController::class)->group(function () {
-    Route::get('/', 'index');
-    Route::post('/', 'store')->middleware('auth:sanctum');
-    Route::put('/{service}', 'update')->middleware('auth:sanctum');
-    Route::delete('/{service}', 'destroy')->middleware('auth:sanctum');
+// payment
+Route::prefix('payments')->middleware('auth:sanctum')->group(function () {
+    // Rate limited to prevent abuse
+    Route::post('/verify', [PaymentController::class, 'verifyPayment'])
+        ->middleware('throttle:5,1');
+    Route::post('/refund/{booking}', [PaymentController::class, 'initiateRefund'])
+        ->middleware('throttle:5,1');
+
+    Route::get('/booking/{booking}', [PaymentController::class, 'getBookingPaymentInfo']);
 });
 
-Route::prefix('accommodations/{accommodation}/reviews')->controller(AccommodationReviewController::class)->group(function () {
-    Route::get('/', 'index');
-    Route::post('/', 'store')->middleware('auth:sanctum');
-    Route::put('/{review}', 'update')->middleware('auth:sanctum');
-    Route::delete('/{review}', 'destroy')->middleware('auth:sanctum');
+// transactions
+Route::prefix('transactions')->middleware('auth:sanctum')->group(function () {
+    Route::get('/user', [TransactionController::class, 'getUserTransactions']);
+    Route::get('/staff', [TransactionController::class, 'getStaffTransactions']);
+    Route::get('/{transaction}', [TransactionController::class, 'getTransactionDetails']);
 });
 
-Route::prefix('bookings')->controller(BookingController::class)->middleware('auth:sanctum')->group(function () {
-    Route::get('/', 'index');
-    Route::get('/{booking}', 'show');
-    Route::post('/', 'store');
-    Route::patch('/{booking}/status', 'updateStatus');
-    Route::patch('/{booking}/cancel', 'cancel');
-});
+// admin panel
+Route::prefix('admin')->middleware('auth:sanctum')->group(function () {
+    // Admin authentication & profile
+    Route::post('/logout', [AdminController::class, 'logout']);
+    Route::get('/me', [AdminController::class, 'getAdminInfo']);
+    Route::get('/dashboard/stats', [AdminController::class, 'getDashboardStats']);
 
-// Payment routes
-Route::prefix('payments')->controller(PaymentController::class)->middleware('auth:sanctum')->group(function () {
-    Route::post('/verify', 'verifyPayment')->middleware('throttle:5,1');
-    Route::post('/refund/{booking}', 'initiateRefund')->middleware('throttle:5,1');
-    Route::get('/booking/{booking}', 'getBookingPaymentInfo');
-});
+    // User management
+    Route::get('/users', [AdminController::class, 'getAllUsers']);
+    Route::delete('/users/{user}', [AdminController::class, 'deleteUser']);
 
-// Transaction routes
-Route::prefix('transactions')->controller(TransactionController::class)->middleware('auth:sanctum')->group(function () {
-    Route::get('/user', 'getUserTransactions');
-    Route::get('/staff', 'getStaffTransactions');
-    Route::get('/{transaction}', 'getTransactionDetails');
-});
+    // Place management
+    Route::get('/places', [AdminController::class, 'getAllPlaces']);
+    Route::delete('/places/{place}', [AdminController::class, 'deletePlace']);
+    Route::patch('/places/{place}/verify', [AdminController::class, 'toggleVerifyPlace']);
+    Route::post('/places/merge', [AdminController::class, 'mergePlaces']);
 
-// Protected admin routes - using regular auth:sanctum middleware
-Route::prefix('admin')->controller(AdminController::class)->middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', 'logout');
-    Route::get('/me', 'getAdminInfo');
-    Route::get('/dashboard/stats', 'getDashboardStats');
-    Route::get('/users', 'getAllUsers');
-    Route::delete('/users/{user}', 'deleteUser');
-    Route::get('/places', 'getAllPlaces');
-    Route::delete('/places/{place}', 'deletePlace');
-    Route::patch('/places/{place}/verify', 'toggleVerifyPlace');
-    Route::post('/places/merge', 'mergePlaces');
+    // Staff management
+    Route::get('/staff', [AdminController::class, 'getAllStaff']);
 
-    Route::get('/staff', 'getAllStaff');
+    // Accommodation management
     Route::get('/accommodations', [AccommodationController::class, 'indexAll']);
     Route::patch('/accommodations/{accommodation}/verify', [AccommodationController::class, 'verify']);
-});
-
-// User profile routes (authenticated)
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/user', [UserController::class, 'profile']);
-    Route::patch('/user', [UserController::class, 'updateProfile']);
-    Route::post('/user/change-password', [UserController::class, 'changePassword']);
 });

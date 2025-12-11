@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('accommodation_id')->constrained()->onDelete('cascade');
             $table->string('room_name');
-            $table->enum('room_type', ['single', 'double', 'suite', 'family', 'dormitory']);
+            $table->enum('room_type', ['standard', 'deluxe', 'suite', 'family']);
             $table->boolean('has_ac')->default(false);
             $table->integer('capacity');
             $table->integer('total_rooms');

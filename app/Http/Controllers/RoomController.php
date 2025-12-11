@@ -2,31 +2,44 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CheckRoomAvailabilityRequest;
 use App\Http\Requests\StoreRoomRequest;
+use App\Http\Requests\UpdateRoomRequest;
+use App\Http\Resources\RoomResource;
 use App\Models\Accommodation;
 use App\Models\Room;
+use App\Services\RoomService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class RoomController extends Controller
 {
-    public function index($accommodationId)
+    public function __construct(protected RoomService $roomService) {}
+
+    /**
+     * Get all rooms for an accommodation
+     */
+    public function index($accommodationId): JsonResponse
     {
         $accommodation = Accommodation::findOrFail($accommodationId);
         $rooms = $accommodation->rooms()->get();
 
         return response()->json([
             'status' => true,
-            'data' => $rooms
+            'data' => RoomResource::collection($rooms)
         ]);
     }
 
-    public function store(StoreRoomRequest $request, $accommodationId)
+    /**
+     * Create new room - Owner staff only
+     * Middleware: auth.staff
+     */
+    public function store(StoreRoomRequest $request, $accommodationId): JsonResponse
     {
         $accommodation = Accommodation::findOrFail($accommodationId);
-        
-        $user = $request->user();
-        if (!$user || !$user->isStaff() || $accommodation->staff_id !== $user->id) {
+
+        // Authorization: only owner can create rooms
+        if ($accommodation->staff_id !== $request->user()->id) {
             return response()->json([
                 'status' => false,
                 'message' => 'Unauthorized'
@@ -34,32 +47,26 @@ class RoomController extends Controller
         }
 
         $data = $request->validated();
-        
-        if ($request->hasFile('images')) {
-            $imagePaths = [];
-            foreach ($request->file('images') as $image) {
-                $path = $image->store('rooms', 'public');
-                $imagePaths[] = $path;
-            }
-            $data['images'] = $imagePaths;
-        }
-
-        $room = $accommodation->rooms()->create($data);
+        $room = $this->roomService->createRoom($accommodation, $data);
 
         return response()->json([
             'status' => true,
             'message' => 'Room created successfully',
-            'data' => $room
+            'data' => new RoomResource($room)
         ], 201);
     }
 
-    public function update(StoreRoomRequest $request, $accommodationId, $roomId)
+    /**
+     * Update room - Owner staff only
+     * Middleware: auth.staff
+     */
+    public function update(UpdateRoomRequest $request, $accommodationId, $roomId): JsonResponse
     {
         $accommodation = Accommodation::findOrFail($accommodationId);
         $room = Room::where('accommodation_id', $accommodationId)->findOrFail($roomId);
-        
-        $user = $request->user();
-        if (!$user || !$user->isStaff() || $accommodation->staff_id !== $user->id) {
+
+        // Authorization: only owner can update rooms
+        if ($accommodation->staff_id !== $request->user()->id) {
             return response()->json([
                 'status' => false,
                 'message' => 'Unauthorized'
@@ -67,51 +74,33 @@ class RoomController extends Controller
         }
 
         $data = $request->validated();
-        
-        if ($request->hasFile('images')) {
-            if ($room->images) {
-                foreach ($room->images as $oldImage) {
-                    Storage::disk('public')->delete($oldImage);
-                }
-            }
-            
-            $imagePaths = [];
-            foreach ($request->file('images') as $image) {
-                $path = $image->store('rooms', 'public');
-                $imagePaths[] = $path;
-            }
-            $data['images'] = $imagePaths;
-        }
-
-        $room->update($data);
+        $room = $this->roomService->updateRoom($room, $data);
 
         return response()->json([
             'status' => true,
             'message' => 'Room updated successfully',
-            'data' => $room
+            'data' => new RoomResource($room)
         ]);
     }
 
-    public function destroy($accommodationId, $roomId)
+    /**
+     * Delete room - Owner staff only
+     * Middleware: auth.staff
+     */
+    public function destroy(Request $request, $accommodationId, $roomId): JsonResponse
     {
         $accommodation = Accommodation::findOrFail($accommodationId);
         $room = Room::where('accommodation_id', $accommodationId)->findOrFail($roomId);
-        
-        $user = request()->user();
-        if (!$user || !$user->isStaff() || $accommodation->staff_id !== $user->id) {
+
+        // Authorization: only owner can delete rooms
+        if ($accommodation->staff_id !== $request->user()->id) {
             return response()->json([
                 'status' => false,
                 'message' => 'Unauthorized'
             ], 403);
         }
 
-        if ($room->images) {
-            foreach ($room->images as $image) {
-                Storage::disk('public')->delete($image);
-            }
-        }
-
-        $room->delete();
+        $this->roomService->deleteRoom($room);
 
         return response()->json([
             'status' => true,
@@ -119,17 +108,15 @@ class RoomController extends Controller
         ]);
     }
 
-    public function checkAvailability(Request $request, $accommodationId, $roomId)
+    /**
+     * Check room availability
+     */
+    public function checkAvailability(CheckRoomAvailabilityRequest $request, $accommodationId, $roomId): JsonResponse
     {
-        $request->validate([
-            'check_in_date' => 'required|date|after_or_equal:today',
-            'check_out_date' => 'required|date|after:check_in_date',
-        ]);
-
         $room = Room::where('accommodation_id', $accommodationId)->findOrFail($roomId);
-        
+
         $availableRooms = $room->getAvailableRooms(
-            $request->check_in_date, 
+            $request->check_in_date,
             $request->check_out_date
         );
 
@@ -142,3 +129,4 @@ class RoomController extends Controller
         ]);
     }
 }
+
