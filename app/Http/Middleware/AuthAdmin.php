@@ -3,26 +3,24 @@
 namespace App\Http\Middleware;
 
 use Closure;
-
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Session;
+use Symfony\Component\HttpFoundation\Response;
 
 class AuthAdmin
 {
-
-    public function handle(Request $request, Closure $next)
+    /**
+     * Handle an incoming request.
+     */
+    public function handle(Request $request, Closure $next): Response
     {
-
-        if (Auth::check()) {
-
-            if (Auth::user()->utype === 'ADM') {
-                return $next($request);
-            } else {
-                Session::flash('error', 'You do not have admin access');
-                return redirect()->route('login');
-            }
+        if (!$request->user() || $request->user()->utype !== 'ADM') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized. Admin access required.'
+            ], 403);
         }
-        return redirect()->route('login');
+
+        return $next($request);
     }
 }
+
