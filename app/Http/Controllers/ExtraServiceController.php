@@ -3,80 +3,103 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreExtraServiceRequest;
+use App\Http\Requests\UpdateExtraServiceRequest;
+use App\Http\Resources\ExtraServiceResource;
 use App\Models\Accommodation;
 use App\Models\ExtraService;
+use App\Services\ExtraServiceService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ExtraServiceController extends Controller
 {
-    public function index($accommodationId)
+    public function __construct(protected ExtraServiceService $extraServiceService) {}
+
+    /**
+     * Get all extra services for an accommodation
+     */
+    public function index($accommodationId): JsonResponse
     {
         $accommodation = Accommodation::findOrFail($accommodationId);
         $services = $accommodation->extraServices()->get();
 
         return response()->json([
             'status' => true,
-            'data' => $services
+            'data' => ExtraServiceResource::collection($services)
         ]);
     }
 
-    public function store(StoreExtraServiceRequest $request, $accommodationId)
+    /**
+     * Create new extra service - Owner staff only
+     * Middleware: auth.staff
+     */
+    public function store(StoreExtraServiceRequest $request, $accommodationId): JsonResponse
     {
         $accommodation = Accommodation::findOrFail($accommodationId);
         
-        $user = $request->user();
-        if (!$user || !$user->isStaff() || $accommodation->staff_id !== $user->id) {
+        // Authorization: only owner can create services
+        if ($accommodation->staff_id !== $request->user()->id) {
             return response()->json([
                 'status' => false,
                 'message' => 'Unauthorized'
             ], 403);
         }
 
-        $service = $accommodation->extraServices()->create($request->validated());
+        $data = $request->validated();
+        $service = $this->extraServiceService->createService($data, $accommodation->id);
 
         return response()->json([
             'status' => true,
             'message' => 'Service created successfully',
-            'data' => $service
+            'data' => new ExtraServiceResource($service)
         ], 201);
     }
 
-    public function update(StoreExtraServiceRequest $request, $accommodationId, $serviceId)
+    /**
+     * Update extra service - Owner staff only
+     * Middleware: auth.staff
+     */
+    public function update(UpdateExtraServiceRequest $request, $accommodationId, $serviceId): JsonResponse
     {
         $accommodation = Accommodation::findOrFail($accommodationId);
         $service = ExtraService::where('accommodation_id', $accommodationId)->findOrFail($serviceId);
         
-        $user = $request->user();
-        if (!$user || !$user->isStaff() || $accommodation->staff_id !== $user->id) {
+        // Authorization: only owner can update services
+        if ($accommodation->staff_id !== $request->user()->id) {
             return response()->json([
                 'status' => false,
                 'message' => 'Unauthorized'
             ], 403);
         }
 
-        $service->update($request->validated());
+        $data = $request->validated();
+        $service = $this->extraServiceService->updateService($service, $data);
 
         return response()->json([
             'status' => true,
             'message' => 'Service updated successfully',
-            'data' => $service
+            'data' => new ExtraServiceResource($service)
         ]);
     }
 
-    public function destroy($accommodationId, $serviceId)
+    /**
+     * Delete extra service - Owner staff only
+     * Middleware: auth.staff
+     */
+    public function destroy(Request $request, $accommodationId, $serviceId): JsonResponse
     {
         $accommodation = Accommodation::findOrFail($accommodationId);
         $service = ExtraService::where('accommodation_id', $accommodationId)->findOrFail($serviceId);
         
-        $user = request()->user();
-        if (!$user || !$user->isStaff() || $accommodation->staff_id !== $user->id) {
+        // Authorization: only owner can delete services
+        if ($accommodation->staff_id !== $request->user()->id) {
             return response()->json([
                 'status' => false,
                 'message' => 'Unauthorized'
             ], 403);
         }
 
-        $service->delete();
+        $this->extraServiceService->deleteService($service);
 
         return response()->json([
             'status' => true,
@@ -84,3 +107,4 @@ class ExtraServiceController extends Controller
         ]);
     }
 }
+
