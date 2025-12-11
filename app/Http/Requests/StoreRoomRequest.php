@@ -17,7 +17,7 @@ class StoreRoomRequest extends FormRequest
 
         return [
             'room_name' => 'required|string|max:255',
-            'room_type' => 'required|in:single,double,suite,family,dormitory',
+            'room_type' => 'required|in:standard,deluxe,suite,family',
             'has_ac' => 'required|in:0,1,true,false',
             'capacity' => 'required|integer|min:1|max:20',
             'total_rooms' => 'required|integer|min:1|max:500',
