@@ -37,7 +37,7 @@ class StaffController extends Controller
     {
         try {
             $user = $request->user();
-            
+
             if (!$user->isStaff()) {
                 return response()->json([
                     'status' => false,
@@ -61,7 +61,7 @@ class StaffController extends Controller
     {
         try {
             $user = $request->user();
-            
+
             if (!$user->isStaff()) {
                 return response()->json([
                     'status' => false,
@@ -98,7 +98,7 @@ class StaffController extends Controller
     {
         try {
             $user = $request->user();
-            
+
             if (!$user || !$user->isStaff()) {
                 return response()->json([
                     'status' => false,
@@ -110,7 +110,7 @@ class StaffController extends Controller
             if ($user->currentAccessToken()) {
                 $user->currentAccessToken()->delete();
             }
-            
+
             return response()->json([
                 'status' => true,
                 'message' => 'Staff logged out successfully'
@@ -127,7 +127,7 @@ class StaffController extends Controller
     {
         try {
             $user = $request->user();
-            
+
             if (!$user->isStaff()) {
                 return response()->json([
                     'status' => false,
@@ -163,7 +163,7 @@ class StaffController extends Controller
             ], 400);
         }
     }
-    
+
     /**
      * Build public storage URL for uploaded files
      */
