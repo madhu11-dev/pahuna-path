@@ -77,6 +77,7 @@ class AdminAuthService
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'utype' => $user->utype,
                     'created_at' => $user->created_at->format('Y-m-d H:i:s'),
                     'profile_picture_url' => $user->profile_picture_url
                 ];
