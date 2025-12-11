@@ -27,21 +27,21 @@ class StaffService
     public function getDashboardData(User $staff): array
     {
         $accommodations = $staff->accommodations;
-        
+
         $totalReviews = 0;
         $avgRating = 0;
-        
+
         if ($accommodations->isNotEmpty()) {
             $accommodationIds = $accommodations->pluck('id');
-            $reviewStats = \DB::table('accommodation_reviews')
+            $reviewStats = DB::table('accommodation_reviews')
                 ->whereIn('accommodation_id', $accommodationIds)
                 ->selectRaw('COUNT(*) as total_reviews, AVG(rating) as avg_rating')
                 ->first();
-                
+
             $totalReviews = $reviewStats ? (int) $reviewStats->total_reviews : 0;
             $avgRating = $reviewStats && $reviewStats->avg_rating ? round((float) $reviewStats->avg_rating, 1) : 0;
         }
-        
+
         return [
             'staff' => [
                 'name' => $staff->name,
@@ -54,7 +54,7 @@ class StaffService
                 $reviewStats = \App\Models\AccommodationReview::where('accommodation_id', $accommodation->id)
                     ->selectRaw('AVG(rating) as average_rating, COUNT(*) as review_count')
                     ->first();
-                
+
                 return [
                     'id' => $accommodation->id,
                     'name' => $accommodation->name,
@@ -65,6 +65,7 @@ class StaffService
                     'latitude' => $accommodation->latitude,
                     'longitude' => $accommodation->longitude,
                     'is_verified' => $accommodation->is_verified,
+                    'has_paid_verification' => $accommodation->hasVerificationPayment(),
                     'average_rating' => $reviewStats && $reviewStats->average_rating ? round((float) $reviewStats->average_rating, 1) : 0,
                     'review_count' => $reviewStats ? (int) $reviewStats->review_count : 0,
                 ];
@@ -90,6 +91,4 @@ class StaffService
         $staff->update($data);
         return $staff->fresh();
     }
-
-
 }

@@ -8,20 +8,21 @@ use App\Models\Room;
 use App\Models\ExtraService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class BookingController extends Controller
 {
     public function index(Request $request)
     {
         $user = $request->user();
-        
+
         if ($user->isStaff()) {
-            $bookings = Booking::whereHas('accommodation', function($query) use ($user) {
+            $bookings = Booking::whereHas('accommodation', function ($query) use ($user) {
                 $query->where('staff_id', $user->id);
             })
-            ->with(['user', 'room', 'accommodation', 'services.service'])
-            ->latest()
-            ->get();
+                ->with(['user', 'room', 'accommodation', 'services.service'])
+                ->latest()
+                ->get();
         } else {
             $bookings = Booking::where('user_id', $user->id)
                 ->with(['room', 'accommodation', 'services.service'])
@@ -39,7 +40,7 @@ class BookingController extends Controller
     {
         $booking = Booking::with(['user', 'room', 'accommodation', 'services.service'])
             ->findOrFail($id);
-        
+
         $user = request()->user();
         if ($booking->user_id !== $user->id && $booking->accommodation->staff_id !== $user->id) {
             return response()->json([
@@ -58,32 +59,32 @@ class BookingController extends Controller
     {
         $user = $request->user();
         $data = $request->validated();
-        
+
         $room = Room::findOrFail($data['room_id']);
-        
+
         $checkInDate = Carbon::parse($data['check_in_date']);
         $checkOutDate = Carbon::parse($data['check_out_date']);
         $totalNights = $checkInDate->diffInDays($checkOutDate);
-        
+
         $availableRooms = $room->getAvailableRooms($data['check_in_date'], $data['check_out_date']);
-        
+
         if ($availableRooms < $data['number_of_rooms']) {
             return response()->json([
                 'status' => false,
                 'message' => 'Not enough rooms available. Only ' . $availableRooms . ' rooms left.'
             ], 400);
         }
-        
+
         if ($data['number_of_guests'] > ($room->capacity * $data['number_of_rooms'])) {
             return response()->json([
                 'status' => false,
                 'message' => 'Guest count exceeds room capacity'
             ], 400);
         }
-        
+
         $roomSubtotal = $room->base_price * $data['number_of_rooms'] * $totalNights;
         $servicesSubtotal = 0;
-        
+
         $booking = Booking::create([
             'user_id' => $user->id,
             'accommodation_id' => $data['accommodation_id'],
@@ -98,29 +99,29 @@ class BookingController extends Controller
             'total_amount' => $roomSubtotal,
             'special_requests' => $data['special_requests'] ?? null,
         ]);
-        
+
         if (!empty($data['services'])) {
             foreach ($data['services'] as $serviceData) {
                 $service = ExtraService::findOrFail($serviceData['service_id']);
                 $quantity = $serviceData['quantity'];
                 $subtotal = $service->price * $quantity;
-                
+
                 $booking->services()->create([
                     'service_id' => $service->id,
                     'quantity' => $quantity,
                     'price' => $service->price,
                     'subtotal' => $subtotal,
                 ]);
-                
+
                 $servicesSubtotal += $subtotal;
             }
-            
+
             $booking->update([
                 'services_subtotal' => $servicesSubtotal,
                 'total_amount' => $roomSubtotal + $servicesSubtotal,
             ]);
         }
-        
+
         $booking->load(['room', 'accommodation', 'services.service']);
 
         return response()->json([
@@ -138,7 +139,7 @@ class BookingController extends Controller
 
         $booking = Booking::findOrFail($id);
         $user = $request->user();
-        
+
         if (!$user->isStaff() || $booking->accommodation->staff_id !== $user->id) {
             return response()->json([
                 'status' => false,
@@ -165,8 +166,9 @@ class BookingController extends Controller
 
         $booking = Booking::findOrFail($id);
         $user = $request->user();
-        
-        if ($booking->user_id !== $user->id) {
+
+        // Allow both the booking owner and the accommodation staff to cancel
+        if ($booking->user_id !== $user->id && $booking->accommodation->staff_id !== $user->id) {
             return response()->json([
                 'status' => false,
                 'message' => 'Unauthorized'
@@ -198,25 +200,32 @@ class BookingController extends Controller
         $refundAmount = 0;
         $refundMessage = '';
         if ($booking->isPaid()) {
-            $refundAmount = $booking->getRefundAmount();
-            
+            // Staff can cancel anytime with 80% refund, users follow normal refund rules
+            if ($user->isStaff() && $booking->accommodation->staff_id === $user->id) {
+                // Staff cancellation - always 80% refund
+                $refundAmount = round($booking->total_amount * 0.80, 2);
+            } else {
+                // User cancellation - follow normal refund rules
+                $refundAmount = $booking->getRefundAmount();
+            }
+
             if ($refundAmount > 0) {
                 try {
                     $transactionService = app(\App\Services\TransactionService::class);
                     $refundResult = $transactionService->processRefund($booking);
-                    
+
                     if ($refundResult['success']) {
                         $refundMessage = "Refund of Rs. {$refundAmount} (80% of booking amount) has been processed.";
                     } else {
                         // Log the error but don't fail the cancellation
-                        \Log::error('Refund processing failed during cancellation', [
+                        Log::error('Refund processing failed during cancellation', [
                             'booking_id' => $booking->id,
                             'error' => $refundResult['message']
                         ]);
                         $refundMessage = "Booking cancelled. Refund processing is pending.";
                     }
                 } catch (\Exception $e) {
-                    \Log::error('Refund processing exception during cancellation', [
+                    Log::error('Refund processing exception during cancellation', [
                         'booking_id' => $booking->id,
                         'error' => $e->getMessage()
                     ]);
@@ -231,7 +240,7 @@ class BookingController extends Controller
 
         return response()->json([
             'status' => true,
-            'message' => $refundAmount > 0 
+            'message' => $refundAmount > 0
                 ? "Booking cancelled successfully. {$refundMessage}"
                 : 'Booking cancelled successfully',
             'data' => $booking,
