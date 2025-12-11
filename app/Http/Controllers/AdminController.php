@@ -2,107 +2,79 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\MergePlacesRequest;
 use App\Models\Place;
 use App\Models\User;
 use App\Services\AdminAuthService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use Throwable;
 
 class AdminController extends Controller
 {
-    public function __construct(protected AdminAuthService $adminAuthService)
-    {
-    }
+    public function __construct(protected AdminAuthService $adminAuthService) {}
 
-    // Admin Logout
-    public function logout(Request $request)
+    /**
+     * Admin Logout
+     * Middleware: auth.admin
+     */
+    public function logout(Request $request): JsonResponse
     {
-        if (!$request->user() || $request->user()->utype !== 'ADM') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized'
-            ], 403);
-        }
-
-        $loggedOut = $this->adminAuthService->adminLogout($request->user());
+        $this->adminAuthService->adminLogout($request->user());
 
         return response()->json([
-            'status' => $loggedOut,
-            'message' => $loggedOut ? 'Logged out successfully' : 'Logout failed'
-        ], $loggedOut ? 200 : 400);
-
+            'status' => true,
+            'message' => 'Logged out successfully'
+        ]);
     }
 
-    // Get Dashboard Statistics
-    public function getDashboardStats(Request $request)
+    /**
+     * Get Dashboard Statistics
+     * Middleware: auth.admin
+     */
+    public function getDashboardStats(): JsonResponse
     {
-        if (!$request->user() || $request->user()->utype !== 'ADM') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized'
-            ], 403);
-        }
-
         $stats = $this->adminAuthService->getDashboardStats();
 
         return response()->json([
             'status' => true,
             'data' => $stats
-        ], 200);
-
+        ]);
     }
 
-    // Get All Users
-    public function getAllUsers(Request $request)
+    /**
+     * Get All Users
+     * Middleware: auth.admin
+     */
+    public function getAllUsers(): JsonResponse
     {
-        if (!$request->user() || $request->user()->utype !== 'ADM') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized'
-            ], 403);
-        }
-
         $users = $this->adminAuthService->getAllUsers();
 
         return response()->json([
             'status' => true,
             'users' => $users
-        ], 200);
-
+        ]);
     }
 
-    // Get All Places
-    public function getAllPlaces(Request $request)
+    /**
+     * Get All Places
+     * Middleware: auth.admin
+     */
+    public function getAllPlaces(): JsonResponse
     {
-        if (!$request->user() || $request->user()->utype !== 'ADM') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized'
-            ], 403);
-        }
-
         $places = $this->adminAuthService->getAllPlaces();
 
         return response()->json([
             'status' => true,
             'places' => $places
-        ], 200);
+        ]);
     }
 
-
-
-    // Delete Place
-    public function deletePlace(Request $request, Place $place)
+    /**
+     * Delete Place
+     * Middleware: auth.admin
+     */
+    public function deletePlace(Place $place): JsonResponse
     {
-        // Check if user is admin
-        if (!$request->user() || $request->user()->utype !== 'ADM') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized'
-            ], 403);
-        }
-
         $deleted = $this->adminAuthService->deletePlace($place);
 
         return response()->json([
@@ -111,103 +83,53 @@ class AdminController extends Controller
         ], $deleted ? 200 : 400);
     }
 
-    // Merge Places
-    public function mergePlaces(Request $request)
+    /**
+     * Merge Places
+     * Middleware: auth.admin
+     */
+    public function mergePlaces(MergePlacesRequest $request): JsonResponse
     {
-        try {
-            // Check if user is admin
-            if (!$request->user() || $request->user()->utype !== 'ADM') {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthorized'
-                ], 403);
-            }
+        $merged = $this->adminAuthService->mergePlaces(
+            $request->placeIds,
+            $request->mergeData
+        );
 
-            $validator = Validator::make($request->all(), [
-                'placeIds' => 'required|array|min:2',
-                'placeIds.*' => 'required|integer|exists:places,id',
-                'mergeData' => 'required|array',
-                'mergeData.selectedPlaceName' => 'required|string|max:255',
-                'mergeData.selectedDescription' => 'required|string',
-                'mergeData.selectedImages' => 'required|array|min:1',
-                'mergeData.selectedLocation' => 'required|string',
-                'mergeData.selectedLatitude' => 'nullable|numeric',
-                'mergeData.selectedLongitude' => 'nullable|numeric',
-                'mergeData.userId' => 'required|integer|exists:users,id'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $merged = $this->adminAuthService->mergePlaces(
-                $request->placeIds,
-                $request->mergeData
-            );
-
-            return response()->json([
-                'status' => $merged['success'],
-                'message' => $merged['message'],
-                'data' => $merged['data'] ?? null
-            ], $merged['success'] ? 200 : 400);
-        } catch (Throwable $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage()
-            ], 400);
-        }
+        return response()->json([
+            'status' => $merged['success'],
+            'message' => $merged['message'],
+            'data' => $merged['data'] ?? null
+        ], $merged['success'] ? 200 : 400);
     }
 
-    // Delete User
-    public function deleteUser(Request $request, User $user)
+    /**
+     * Delete User
+     * Middleware: auth.admin
+     */
+    public function deleteUser(User $user): JsonResponse
     {
-        try {
-            // Check if user is admin
-            if (!$request->user() || $request->user()->utype !== 'ADM') {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthorized'
-                ], 403);
-            }
-
-            // Prevent admin from deleting other admins
-            if ($user->utype === 'ADM') {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Cannot delete admin users'
-                ], 403);
-            }
-
-            $deleted = $this->adminAuthService->deleteUser($user);
-            
-            return response()->json([
-                'status' => $deleted,
-                'message' => $deleted ? 'User deleted successfully' : 'Failed to delete user'
-            ], $deleted ? 200 : 400);
-        } catch (Throwable $e) {
+        // Prevent admin from deleting other admins
+        if ($user->utype === 'ADM') {
             return response()->json([
                 'status' => false,
-                'message' => $e->getMessage()
-            ], 400);
-        }
-    }
-
-    // Get current admin info
-    public function getAdminInfo(Request $request)
-    {
-        $user = $request->user();
-
-        // Check if user is admin
-        if (!$user || $user->utype !== 'ADM') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized'
+                'message' => 'Cannot delete admin users'
             ], 403);
         }
+
+        $deleted = $this->adminAuthService->deleteUser($user);
+
+        return response()->json([
+            'status' => $deleted,
+            'message' => $deleted ? 'User deleted successfully' : 'Failed to delete user'
+        ], $deleted ? 200 : 400);
+    }
+
+    /**
+     * Get current admin info
+     * Middleware: auth.admin
+     */
+    public function getAdminInfo(Request $request): JsonResponse
+    {
+        $user = $request->user();
 
         return response()->json([
             'status' => true,
@@ -217,64 +139,42 @@ class AdminController extends Controller
                 'email' => $user->email,
                 'profile_picture_url' => $user->profile_picture_url
             ]
-        ], 200);
+        ]);
     }
 
-    // Toggle place verification status
-    public function toggleVerifyPlace(Request $request, Place $place)
+    /**
+     * Toggle place verification status
+     * Middleware: auth.admin
+     */
+    public function toggleVerifyPlace(Place $place): JsonResponse
     {
-        try {
-            // Check if user is admin
-            if (!$request->user() || $request->user()->utype !== 'ADM') {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthorized'
-                ], 403);
-            }
+        $place->is_verified = !$place->is_verified;
+        $place->save();
 
-            // Toggle verification status
-            $place->is_verified = !$place->is_verified;
-            $place->save();
-
-            return response()->json([
-                'status' => true,
-                'message' => $place->is_verified ? 'Place verified successfully' : 'Place verification removed',
-                'is_verified' => $place->is_verified
-            ], 200);
-
-        } catch (Throwable $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Failed to update place verification: ' . $e->getMessage()
-            ], 400);
-        }
+        return response()->json([
+            'status' => true,
+            'message' => $place->is_verified ? 'Place verified successfully' : 'Place verification removed',
+            'is_verified' => $place->is_verified
+        ]);
     }
 
-    // Get All Staff
-    public function getAllStaff(Request $request)
+    /**
+     * Get All Staff
+     * Middleware: auth.admin
+     */
+    public function getAllStaff(): JsonResponse
     {
-        if (!$request->user() || $request->user()->utype !== 'ADM') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized'
-            ], 403);
-        }
-
         $result = $this->adminAuthService->getAllStaff();
 
         return response()->json($result, $result['success'] ? 200 : 400);
     }
 
-    // Get Pending Staff
-    public function getPendingAccommodations(Request $request)
+    /**
+     * Get Pending Accommodations
+     * Middleware: auth.admin
+     */
+    public function getPendingAccommodations(): JsonResponse
     {
-        if (!$request->user() || $request->user()->utype !== 'ADM') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized'
-            ], 403);
-        }
-
         $result = $this->adminAuthService->getAllStaff();
 
         return response()->json([
@@ -283,6 +183,4 @@ class AdminController extends Controller
             'message' => $result['message'] ?? 'Staff list retrieved successfully'
         ], $result['success'] ? 200 : 400);
     }
-
-
 }
